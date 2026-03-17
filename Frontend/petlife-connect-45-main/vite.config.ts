@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      ".ngrok-free.app", 
+       ".ngrok-free.dev",
+    ],
     proxy: {
       // In dev, call backend through same-origin to avoid CORS headaches:
       // axios baseURL should be "/api" in the frontend.
