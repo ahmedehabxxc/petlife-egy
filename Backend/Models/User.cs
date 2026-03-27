@@ -26,5 +26,8 @@ namespace petLifeApp.Models
 
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
+
+        [Column("IsActive")]
+        public bool? IsActive { get; set; }
     }
 }

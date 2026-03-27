@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import VetCard from "@/components/VetCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,34 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Stethoscope, SlidersHorizontal, ArrowUpDown } from "lucide-react";
 import type { Veterinarian } from "@/types";
-
-const mockVets: Veterinarian[] = [
-  {
-    id: "v1", userId: "u1", name: "Dr. Ahmed Hassan", avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop",
-    specialty: "General Practice", clinicName: "Cairo Pet Care", clinicAddress: "Zamalek, Cairo",
-    phone: "+20 100 123 4567", rating: 4.8, reviewCount: 124, isVerified: true, consultationFee: 150, lat: 30.0561, lng: 31.2243,
-  },
-  {
-    id: "v2", userId: "u2", name: "Dr. Sara El-Masry", avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&h=200&fit=crop",
-    specialty: "Surgery", clinicName: "Giza Vet Clinic", clinicAddress: "Dokki, Giza",
-    phone: "+20 100 234 5678", rating: 4.9, reviewCount: 89, isVerified: true, consultationFee: 200, lat: 30.0384, lng: 31.2120,
-  },
-  {
-    id: "v3", userId: "u3", name: "Dr. Mohamed Ali", avatar: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&h=200&fit=crop",
-    specialty: "Dermatology", clinicName: "Pet Skin Center", clinicAddress: "Nasr City, Cairo",
-    phone: "+20 100 345 6789", rating: 4.6, reviewCount: 56, isVerified: true, consultationFee: 180, lat: 30.0626, lng: 31.3376,
-  },
-  {
-    id: "v4", userId: "u4", name: "Dr. Layla Nour", avatar: "https://images.unsplash.com/photo-1594824476967-48c8b964ac31?w=200&h=200&fit=crop",
-    specialty: "Dentistry", clinicName: "Smile Paws Clinic", clinicAddress: "Heliopolis, Cairo",
-    phone: "+20 100 456 7890", rating: 4.7, reviewCount: 42, isVerified: false, consultationFee: 120, lat: 30.0870, lng: 31.3230,
-  },
-  {
-    id: "v5", userId: "u5", name: "Dr. Omar Farouk",
-    specialty: "Internal Medicine", clinicName: "PetVet Alex", clinicAddress: "Smouha, Alexandria",
-    phone: "+20 100 567 8901", rating: 4.5, reviewCount: 78, isVerified: true, consultationFee: 160, lat: 31.2156, lng: 29.9553,
-  },
-];
+import api from "@/services/api";
+import { toast } from "sonner";
 
 const specialties = ["All", "General Practice", "Surgery", "Dermatology", "Dentistry", "Internal Medicine"];
 
@@ -50,9 +24,45 @@ const VetSearch = () => {
   const [search, setSearch] = useState("");
   const [specialty, setSpecialty] = useState("All");
   const [sort, setSort] = useState<SortOption>("rating");
+  const [vets, setVets] = useState<Veterinarian[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadVets = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get("/Veterinarians");
+        const rows = Array.isArray(response.data) ? response.data : [];
+        const mapped = rows.map((v: any) => ({
+          id: String(v.id ?? v.Id ?? ""),
+          userId: String(v.userId ?? v.UserId ?? ""),
+          name: v.name ?? v.Name ?? "Veterinarian",
+          avatar: v.avatar ?? v.Avatar ?? undefined,
+          specialty: v.specialty ?? v.Specialty ?? "General Practice",
+          clinicName: v.clinicName ?? v.ClinicName ?? "Clinic",
+          clinicAddress: v.clinicAddress ?? v.ClinicAddress ?? "",
+          phone: v.phone ?? v.Phone ?? "",
+          rating: Number(v.rating ?? v.Rating ?? 0),
+          reviewCount: Number(v.reviewCount ?? v.ReviewCount ?? 0),
+          isVerified: Boolean(v.isVerified ?? v.IsVerified ?? false),
+          consultationFee: Number(v.consultationFee ?? v.ConsultationFee ?? 150),
+          lat: v.lat ?? v.Lat ?? undefined,
+          lng: v.lng ?? v.Lng ?? undefined,
+        }));
+        setVets(mapped);
+      } catch (error: any) {
+        const message = error.response?.data?.message || "Failed to load veterinarians";
+        toast.error(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadVets();
+  }, []);
 
   const filtered = useMemo(() => {
-    const list = mockVets.filter((vet) => {
+    const list = vets.filter((vet) => {
       const matchesSearch = vet.name.toLowerCase().includes(search.toLowerCase()) ||
         vet.clinicName.toLowerCase().includes(search.toLowerCase());
       const matchesSpecialty = specialty === "All" || vet.specialty === specialty;
@@ -150,7 +160,9 @@ const VetSearch = () => {
       </div>
 
       {/* Results */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-16 text-muted-foreground">Loading veterinariansâ€¦</div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="h-16 w-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">
             <Stethoscope className="h-7 w-7 text-muted-foreground/50" />

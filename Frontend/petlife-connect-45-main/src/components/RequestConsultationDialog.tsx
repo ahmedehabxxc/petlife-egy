@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
-import { useConsultationStore } from "@/stores/consultationStore";
+import api from "@/services/api";
 import type { Veterinarian } from "@/types";
 
 interface RequestConsultationDialogProps {
@@ -22,47 +22,62 @@ interface RequestConsultationDialogProps {
   trigger?: React.ReactNode;
 }
 
-// Mock pets for demo
-const mockUserPets = [
-  { id: "p1", name: "Luna", species: "Cat" },
-  { id: "p2", name: "Max", species: "Dog" },
-  { id: "p3", name: "Cleo", species: "Cat" },
-];
+interface PetOption {
+  id: string;
+  name: string;
+  species: string;
+}
 
 const RequestConsultationDialog = ({ vet, trigger }: RequestConsultationDialogProps) => {
   const [open, setOpen] = useState(false);
   const [selectedPet, setSelectedPet] = useState("");
   const { user } = useAuthStore();
-  const { addRequest } = useConsultationStore();
+  const [pets, setPets] = useState<PetOption[]>([]);
+  const resolvedUserId = user?.userId ?? (Number.isFinite(Number(user?.id)) ? Number(user?.id) : null);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    const loadPets = async () => {
+      if (!resolvedUserId) return;
+      try {
+        const response = await api.get("/Pets", {
+          params: { ownerId: resolvedUserId },
+        });
+        const rows = Array.isArray(response.data) ? response.data : [];
+        const mapped = rows.map((pet: any) => ({
+          id: String(pet.id ?? pet.Id ?? ""),
+          name: pet.name ?? pet.Name ?? "",
+          species: (pet.type ?? pet.Type ?? "Unknown") as string,
+        }));
+        setPets(mapped);
+      } catch (error: any) {
+        const message = error.response?.data?.message || "Failed to load pets";
+        toast.error(message);
+      }
+    };
+
+    if (open) {
+      void loadPets();
+    }
+  }, [open, resolvedUserId]);
+
+  const handleSubmit = async () => {
     if (!selectedPet) {
       toast.error("Please select a pet");
       return;
     }
 
-    const pet = mockUserPets.find((p) => p.id === selectedPet);
-    if (!pet) return;
-
-    addRequest({
-      id: `cr-${Date.now()}`,
-      petOwnerId: user?.id || "demo-owner",
-      petOwnerName: user?.name || "Demo User",
-      petOwnerAvatar: user?.avatar,
-      vetId: vet.id,
-      vetName: vet.name,
-      vetAvatar: vet.avatar,
-      petId: pet.id,
-      petName: pet.name,
-      petSpecies: pet.species,
-      fee: vet.consultationFee,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    });
-
-    toast.success(`Consultation request sent to ${vet.name}!`);
-    setOpen(false);
-    setSelectedPet("");
+    try {
+      await api.post("/Consultations", {
+        vetId: vet.id,
+        petId: selectedPet,
+      });
+      toast.success(`Consultation request sent to ${vet.name}!`);
+      setOpen(false);
+      setSelectedPet("");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to send consultation request";
+      toast.error(message);
+    }
   };
 
   return (
@@ -112,7 +127,7 @@ const RequestConsultationDialog = ({ vet, trigger }: RequestConsultationDialogPr
                 <SelectValue placeholder="Choose a pet…" />
               </SelectTrigger>
               <SelectContent>
-                {mockUserPets.map((pet) => (
+                {pets.map((pet) => (
                   <SelectItem key={pet.id} value={pet.id}>
                     {pet.name} ({pet.species})
                   </SelectItem>

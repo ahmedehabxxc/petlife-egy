@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
-import { useVetRegistrationStore } from "@/stores/vetRegistrationStore";
 import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PawPrint, Clock, XCircle } from "lucide-react";
+import { PawPrint } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -15,7 +14,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
-  const { getByEmail } = useVetRegistrationStore();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,27 +21,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Check if this is a vet email with pending registration
-      const vetReg = getByEmail(email);
-
-      if (vetReg && vetReg.status === "pending") {
-        toast.error("Your account is pending admin approval. Please wait for approval before logging in.", {
-          duration: 5000,
-          icon: <Clock className="h-4 w-4" />,
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (vetReg && vetReg.status === "rejected") {
-        toast.error("Your veterinarian registration was rejected. Please contact support.", {
-          duration: 5000,
-          icon: <XCircle className="h-4 w-4" />,
-        });
-        setLoading(false);
-        return;
-      }
-
       // Call real backend API
       const response = await api.post("/Auth/login", { email, password });
       const data = response.data;

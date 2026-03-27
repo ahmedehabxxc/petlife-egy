@@ -92,6 +92,7 @@ export interface ConsultationRequest {
   petOwnerName: string;
   petOwnerAvatar?: string;
   vetId: string;
+  vetUserId?: number;
   vetName: string;
   vetAvatar?: string;
   petId: string;

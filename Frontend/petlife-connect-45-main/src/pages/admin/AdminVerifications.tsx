@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ShieldCheck, Search, CheckCircle2, XCircle, FileText, Clock, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
-import { useVetRegistrationStore, type VetRegistration } from "@/stores/vetRegistrationStore";
+import api from "@/services/api";
 
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/20",
@@ -15,9 +15,22 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminVerifications = () => {
-  const { registrations, updateStatus } = useVetRegistrationStore();
+  const [registrations, setRegistrations] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+
+  useEffect(() => {
+    const loadVerifications = async () => {
+      try {
+        const response = await api.get("/Admin/verifications");
+        setRegistrations(response.data || []);
+      } catch {
+        toast.error("Failed to load verifications");
+      }
+    };
+
+    void loadVerifications();
+  }, []);
 
   const filtered = registrations.filter((r) => {
     const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -28,9 +41,19 @@ const AdminVerifications = () => {
 
   const pendingCount = registrations.filter((r) => r.status === "pending").length;
 
-  const handleAction = (id: string, action: "approved" | "rejected") => {
-    updateStatus(id, action);
-    toast.success(`Registration ${action}!`);
+  const handleAction = async (id: string, action: "approved" | "rejected") => {
+    try {
+      if (action === "approved") {
+        await api.post(`/Admin/verifications/${id}/approve`);
+      } else {
+        await api.post(`/Admin/verifications/${id}/reject`);
+      }
+      setRegistrations(registrations.map((r) => (r.id === id ? { ...r, status: action } : r)));
+      toast.success(`Registration ${action}!`);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to update status";
+      toast.error(message);
+    }
   };
 
   return (
@@ -96,7 +119,7 @@ const AdminVerifications = () => {
                     </div>
 
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {req.documents.map((doc) => (
+                      {(req.documents || []).map((doc: string) => (
                         <span key={doc} className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                           <FileText className="h-3 w-3" /> {doc}
                         </span>
@@ -105,7 +128,7 @@ const AdminVerifications = () => {
 
                     <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Submitted: {new Date(req.submittedAt).toLocaleDateString()}
+                      Submitted: {req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "—"}
                     </p>
 
                     {req.reviewedAt && (

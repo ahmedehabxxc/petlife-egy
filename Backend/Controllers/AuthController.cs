@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Supabase;
+using System.IdentityModel.Tokens.Jwt;
 using petLifeApp.Models;
 
 namespace petLifeApp.Controllers
@@ -73,16 +74,41 @@ namespace petLifeApp.Controllers
                 };
 
                 User? dbUser;
+                var adminClient = GetAdminClient();
                 try
                 {
-                    var adminClient = GetAdminClient();
                     await adminClient.From<UserInsert>().Insert(userInsert);
+                }
+                catch (Exception insertEx)
+                {
+                    return BadRequest(new
+                    {
+                        message = "User created in auth but Users insert failed. Check RLS and service role key.",
+                        stage = "users_insert",
+                        details = insertEx.Message
+                    });
+                }
+
+                try
+                {
                     dbUser = await adminClient
                         .From<User>()
                         .Where(x => x.AuthId == authId)
                         .Single();
+                }
+                catch (Exception readEx)
+                {
+                    return BadRequest(new
+                    {
+                        message = "User created in auth but Users read failed.",
+                        stage = "users_read",
+                        details = readEx.Message
+                    });
+                }
 
-                    if (dbUser != null && string.Equals(role, "shop_owner", StringComparison.OrdinalIgnoreCase))
+                if (dbUser != null && string.Equals(role, "shop_owner", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
                     {
                         var existingOwner = await adminClient
                             .From<ShopOwnerRecord>()
@@ -101,14 +127,103 @@ namespace petLifeApp.Controllers
                             await adminClient.From<ShopOwnerRecord>().Insert(ownerInsert);
                         }
                     }
-                }
-                catch (Exception insertEx)
-                {
-                    return BadRequest(new
+                    catch (Exception ownerEx)
                     {
-                        message = "User created in auth but profile insert failed. Check RLS and service role key.",
-                        details = insertEx.Message
-                    });
+                        return BadRequest(new
+                        {
+                            message = "User created in auth but ShopOwner insert failed.",
+                            stage = "shop_owner_insert",
+                            details = ownerEx.Message
+                        });
+                    }
+                }
+
+                if (dbUser != null && string.Equals(role, "veterinarian", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var existingVet = await adminClient
+                            .From<VeterinarianProfileRecord>()
+                            .Where(x => x.UserId == dbUser.UserId)
+                            .Get();
+
+                        if (existingVet.Models.Count == 0)
+                        {
+                            var vetInsert = new VeterinarianInsert
+                            {
+                                Id = Guid.NewGuid(),
+                                UserId = dbUser.UserId,
+                                LicenseNumber = request.LicenseNumber,
+                                Specialization = request.Specialization,
+                                ClinicName = request.ClinicName,
+                                IsVerified = false
+                            };
+
+                            await adminClient.From<VeterinarianInsert>().Insert(vetInsert);
+
+                            var extrasInsert = new VeterinarianExtrasUpdate
+                            {
+                                Id = vetInsert.Id,
+                                University = request.University,
+                                YearsOfExperience = request.YearsOfExperience,
+                                Bio = request.Bio,
+                                ConsultationFee = request.ConsultationFee,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+
+                            try
+                            {
+                                await adminClient.From<VeterinarianExtrasUpdate>().Update(extrasInsert);
+                            }
+                            catch
+                            {
+                                // Ignore optional columns that may not exist yet.
+                            }
+                        }
+                        else
+                        {
+                            var vetId = existingVet.Models[0].Id;
+                            var vetBaseUpdate = new VeterinarianInsert
+                            {
+                                Id = vetId,
+                                UserId = dbUser.UserId,
+                                LicenseNumber = request.LicenseNumber,
+                                Specialization = request.Specialization,
+                                ClinicName = request.ClinicName,
+                                IsVerified = existingVet.Models[0].IsVerified
+                            };
+
+                            await adminClient.From<VeterinarianInsert>().Update(vetBaseUpdate);
+
+                            var extrasUpdate = new VeterinarianExtrasUpdate
+                            {
+                                Id = vetId,
+                                University = request.University,
+                                YearsOfExperience = request.YearsOfExperience,
+                                Bio = request.Bio,
+                                ConsultationFee = request.ConsultationFee,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+
+                            try
+                            {
+                                await adminClient.From<VeterinarianExtrasUpdate>().Update(extrasUpdate);
+                            }
+                            catch
+                            {
+                                // Ignore optional columns that may not exist yet.
+                            }
+                        }
+                    }
+                    catch (Exception vetEx)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "User created in auth but Veterinarians insert failed. Check RLS and service role key.",
+                            stage = "veterinarians_insert",
+                            details = vetEx.Message
+                        });
+                    }
                 }
 
                 var token = session.AccessToken ?? session.RefreshToken ?? "";
@@ -169,6 +284,52 @@ namespace petLifeApp.Controllers
                 return Unauthorized(new { message = ex.Message });
             }
         }
+
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var authHeader = Request.Headers.Authorization.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                return Unauthorized(new { message = "Missing or invalid Authorization header." });
+            }
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(token);
+                var sub = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                if (!Guid.TryParse(sub, out var authId))
+                {
+                    return Unauthorized(new { message = "Invalid auth user id." });
+                }
+
+                var adminClient = GetAdminClient();
+                var dbUser = await adminClient
+                    .From<User>()
+                    .Where(x => x.AuthId == authId)
+                    .Single();
+
+                if (dbUser == null)
+                {
+                    return Unauthorized(new { message = "User record not found." });
+                }
+
+                return Ok(new
+                {
+                    authId = dbUser.AuthId,
+                    userId = dbUser.UserId,
+                    email = dbUser.Email,
+                    role = dbUser.Role ?? "pet_owner",
+                    name = dbUser.UserName ?? dbUser.Email
+                });
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+        }
     }
 
     public record AuthRegisterRequest(
@@ -177,7 +338,14 @@ namespace petLifeApp.Controllers
         string FirstName,
         string? LastName,
         string? Phone,
-        string? Role
+        string? Role,
+        string? LicenseNumber,
+        string? Specialization,
+        string? ClinicName,
+        string? University,
+        int? YearsOfExperience,
+        string? Bio,
+        decimal? ConsultationFee
     );
 
     public record AuthLoginRequest(string Email, string Password);

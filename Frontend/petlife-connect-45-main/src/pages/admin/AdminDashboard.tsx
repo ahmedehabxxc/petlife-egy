@@ -1,34 +1,46 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShieldCheck, PawPrint, ShoppingBag, TrendingUp, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import api from "@/services/api";
 
-const stats = [
-  { label: "Total Users", value: "1,247", icon: Users, color: "text-primary", change: "+12%" },
-  { label: "Verified Vets", value: "34", icon: ShieldCheck, color: "text-secondary", change: "+3" },
-  { label: "Pets Registered", value: "892", icon: PawPrint, color: "text-accent", change: "+45" },
-  { label: "Orders This Month", value: "326", icon: ShoppingBag, color: "text-info", change: "+18%" },
-];
-
-const monthlyUsers = [
-  { month: "Jul", users: 120 }, { month: "Aug", users: 180 }, { month: "Sep", users: 240 },
-  { month: "Oct", users: 310 }, { month: "Nov", users: 420 }, { month: "Dec", users: 510 },
-  { month: "Jan", users: 620 },
-];
-
-const revenueData = [
-  { month: "Jul", revenue: 8200 }, { month: "Aug", revenue: 9400 }, { month: "Sep", revenue: 11200 },
-  { month: "Oct", revenue: 13500 }, { month: "Nov", revenue: 15800 }, { month: "Dec", revenue: 18200 },
-  { month: "Jan", revenue: 21400 },
-];
-
-const roleDistribution = [
-  { name: "Pet Owners", value: 980 },
-  { name: "Veterinarians", value: 45 },
-  { name: "Shop Owners", value: 22 },
-];
 const COLORS = ["hsl(25, 95%, 53%)", "hsl(172, 66%, 40%)", "hsl(45, 93%, 58%)"];
 
 const AdminDashboard = () => {
+  const [stats, setStats] = useState([
+    { label: "Total Users", value: "0", icon: Users, color: "text-primary", change: "" },
+    { label: "Verified Vets", value: "0", icon: ShieldCheck, color: "text-secondary", change: "" },
+    { label: "Pets Registered", value: "0", icon: PawPrint, color: "text-accent", change: "" },
+    { label: "Orders This Month", value: "0", icon: ShoppingBag, color: "text-info", change: "" },
+  ]);
+  const [monthlyUsers, setMonthlyUsers] = useState<{ month: string; users: number }[]>([]);
+  const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([]);
+  const [roleDistribution, setRoleDistribution] = useState<{ name: string; value: number }[]>([]);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const response = await api.get("/Admin/dashboard");
+        const data = response.data || {};
+
+        setStats([
+          { label: "Total Users", value: String(data.totalUsers ?? 0), icon: Users, color: "text-primary", change: "" },
+          { label: "Verified Vets", value: String(data.verifiedVets ?? 0), icon: ShieldCheck, color: "text-secondary", change: "" },
+          { label: "Pets Registered", value: String(data.petsRegistered ?? 0), icon: PawPrint, color: "text-accent", change: "" },
+          { label: "Orders This Month", value: String(data.ordersThisMonth ?? 0), icon: ShoppingBag, color: "text-info", change: "" },
+        ]);
+
+        setMonthlyUsers(data.monthlyUsers ?? []);
+        setRevenueData(data.revenueData ?? []);
+        setRoleDistribution(data.roleDistribution ?? []);
+      } catch {
+        // Keep fallback values
+      }
+    };
+
+    void loadDashboard();
+  }, []);
+
   return (
     <div className="space-y-6">
       <h1 className="font-heading text-2xl font-bold">Admin Dashboard</h1>
@@ -44,7 +56,7 @@ const AdminDashboard = () => {
                 <p className="text-2xl font-heading font-bold">{s.value}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
               </div>
-              <span className="ml-auto text-xs font-medium text-success">{s.change}</span>
+              {s.change && <span className="ml-auto text-xs font-medium text-success">{s.change}</span>}
             </CardContent>
           </Card>
         ))}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ChatWindow from "@/components/ChatWindow";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MessageCircle, CheckCircle2, XCircle, DollarSign } from "lucide-react";
 import { toast } from "sonner";
-import { useConsultationStore } from "@/stores/consultationStore";
+import { useAuthStore } from "@/stores/authStore";
 import type { ChatMessage } from "@/hooks/useSignalR";
 import type { ConsultationRequest } from "@/types";
+import api from "@/services/api";
 
 const statusColors: Record<string, string> = {
   accepted: "bg-success/10 text-success border-success/20",
@@ -18,44 +19,113 @@ const statusColors: Record<string, string> = {
 };
 
 const VetConsultations = () => {
-  const { requests, updateStatus } = useConsultationStore();
+  const { user } = useAuthStore();
+  const resolvedUserId = user?.userId ?? (Number.isFinite(Number(user?.id)) ? Number(user?.id) : null);
+  const [requests, setRequests] = useState<ConsultationRequest[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [activeChat, setActiveChat] = useState<ConsultationRequest | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
-  // Filter requests for this vet (using v1 as demo)
-  const vetRequests = requests.filter((r) => r.vetId === "v1");
-
-  const filtered = vetRequests.filter((r) => {
-    const matchesSearch =
-      r.petName.toLowerCase().includes(search.toLowerCase()) ||
-      r.petOwnerName.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "all" || r.status === filter;
-    return matchesSearch && matchesFilter;
-  });
-
-  const handleAccept = (id: string) => {
-    updateStatus(id, "accepted");
-    toast.success("Consultation accepted! You can now chat with the pet owner.");
+  const loadRequests = async () => {
+    if (!resolvedUserId) return;
+    try {
+      const response = await api.get("/Consultations/for-vet", {
+        params: { userId: resolvedUserId },
+      });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped = rows.map((r: any) => ({
+        id: String(r.id ?? r.Id ?? ""),
+        petOwnerId: String(r.petOwnerId ?? r.PetOwnerId ?? ""),
+        petOwnerName: r.petOwnerName ?? r.PetOwnerName ?? "Owner",
+        petOwnerAvatar: r.petOwnerAvatar ?? r.PetOwnerAvatar ?? undefined,
+        vetId: String(r.vetId ?? r.VetId ?? ""),
+        vetUserId: Number(r.vetUserId ?? r.VetUserId ?? 0),
+        vetName: r.vetName ?? r.VetName ?? "Vet",
+        vetAvatar: r.vetAvatar ?? r.VetAvatar ?? undefined,
+        petId: String(r.petId ?? r.PetId ?? ""),
+        petName: r.petName ?? r.PetName ?? "Pet",
+        petSpecies: r.petSpecies ?? r.PetSpecies ?? "Unknown",
+        fee: Number(r.fee ?? r.Fee ?? 0),
+        status: (r.status ?? r.Status ?? "pending") as ConsultationRequest["status"],
+        createdAt: r.createdAt ?? r.CreatedAt ?? new Date().toISOString(),
+      }));
+      setRequests(mapped);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to load consultations";
+      toast.error(message);
+    }
   };
 
-  const handleDecline = (id: string) => {
-    updateStatus(id, "declined");
-    toast.info("Consultation request declined.");
+  useEffect(() => {
+    void loadRequests();
+  }, [resolvedUserId]);
+
+  const filtered = useMemo(() => {
+    const base = requests.filter((r) => {
+      const matchesSearch =
+        r.petName.toLowerCase().includes(search.toLowerCase()) ||
+        r.petOwnerName.toLowerCase().includes(search.toLowerCase());
+      const matchesFilter = filter === "all" || r.status === filter;
+      return matchesSearch && matchesFilter;
+    });
+    return base;
+  }, [requests, search, filter]);
+
+  const handleAccept = async (id: string) => {
+    try {
+      await api.post(`/Consultations/${id}/accept`);
+      await loadRequests();
+      toast.success("Consultation accepted! You can now chat with the pet owner.");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to accept request";
+      toast.error(message);
+    }
   };
+
+  const handleDecline = async (id: string) => {
+    try {
+      await api.post(`/Consultations/${id}/decline`);
+      await loadRequests();
+      toast.info("Consultation request declined.");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to decline request";
+      toast.error(message);
+    }
+  };
+
+  const fetchConversation = async (conversationId: string) => {
+    if (!resolvedUserId) return;
+    try {
+      const response = await api.get(`/Notifications/conversation/${conversationId}`, {
+        params: { userId: resolvedUserId },
+      });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped = rows.map((m: any) => ({
+        id: String(m.id ?? m.Id ?? ""),
+        senderId: String(m.senderId ?? m.SenderId ?? ""),
+        senderName: m.senderName ?? m.SenderName ?? "User",
+        content: m.content ?? m.Content ?? "",
+        timestamp: m.timestamp ?? m.Timestamp ?? new Date().toISOString(),
+        type: "text" as const,
+      }));
+      setChatMessages(mapped);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (!activeChat) return;
+    const conversationId = activeChat.id;
+    void fetchConversation(conversationId);
+    const interval = setInterval(() => {
+      void fetchConversation(conversationId);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [activeChat]);
 
   if (activeChat) {
-    const initialMessages: ChatMessage[] = [
-      {
-        id: "sys1",
-        senderId: "system",
-        senderName: "System",
-        content: `Consultation started for ${activeChat.petName} (${activeChat.petSpecies})`,
-        timestamp: new Date().toISOString(),
-        type: "system",
-      },
-    ];
-
     return (
       <div className="max-w-3xl mx-auto">
         <div className="mb-4">
@@ -66,17 +136,39 @@ const VetConsultations = () => {
           </p>
         </div>
         <ChatWindow
-          conversationId={`consultation-${activeChat.id}`}
+          conversationId={activeChat.id}
           recipientName={activeChat.petOwnerName}
           recipientAvatar={activeChat.petOwnerAvatar}
-          initialMessages={initialMessages}
+          initialMessages={chatMessages}
+          onSendMessage={async (content) => {
+            if (!resolvedUserId) {
+              throw new Error("Missing user");
+            }
+            const receiverUserId = Number(activeChat.petOwnerId);
+            const response = await api.post("/Notifications/message", {
+              senderUserId: resolvedUserId,
+              receiverUserId,
+              content,
+              conversationId: activeChat.id,
+              relatedId: activeChat.id,
+            });
+            await fetchConversation(activeChat.id);
+            return {
+              id: String(response.data?.id ?? `msg-${Date.now()}`),
+              senderId: String(resolvedUserId),
+              senderName: "You",
+              content,
+              timestamp: new Date().toISOString(),
+              type: "text",
+            };
+          }}
           onBack={() => setActiveChat(null)}
         />
       </div>
     );
   }
 
-  const pendingCount = vetRequests.filter((r) => r.status === "pending").length;
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
 
   return (
     <div>

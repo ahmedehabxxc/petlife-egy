@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
-import { useVetRegistrationStore } from "@/stores/vetRegistrationStore";
 import api from "@/services/api";
 import { User, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -38,9 +37,9 @@ const Register = () => {
   const [clinicName, setClinicName] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [documents, setDocuments] = useState<string[]>([]);
+  const [credentialFiles, setCredentialFiles] = useState<File[]>([]);
 
   const { login } = useAuthStore();
-  const { addRegistration } = useVetRegistrationStore();
   const navigate = useNavigate();
 
   const isVet = role === "veterinarian";
@@ -63,26 +62,20 @@ const Register = () => {
 
     try {
       if (isVet) {
-        // Vet registration goes to pending approval
-        const regId = `vr-${Date.now()}`;
-        const userId = `vet-pending-${Date.now()}`;
-
-        addRegistration({
-          id: regId,
-          userId,
-          name,
+        await api.post("/Auth/register", {
           email,
+          password,
+          firstName: name,
+          role,
           licenseNumber,
-          specialty,
+          specialization: specialty,
           clinicName,
-          yearsOfExperience: parseInt(yearsOfExperience),
-          documents,
-          status: "pending",
-          submittedAt: new Date().toISOString(),
+          yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
         });
 
         setSubmitted(true);
         toast.success("Registration submitted for review!");
+        navigate("/login");
       } else {
         // Non-vet roles: register through the backend API
         const response = await api.post("/Auth/register", {
@@ -260,7 +253,7 @@ const Register = () => {
                 <div className="space-y-2">
                   <Label>Credentials Documents *</Label>
                   <div
-                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    className="relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
                   >
                     {documents.length > 0 ? (
                       <div className="space-y-2">
@@ -278,6 +271,17 @@ const Register = () => {
                         <p className="text-[10px] text-muted-foreground">PDF, JPG, PNG (max 10MB each)</p>
                       </div>
                     )}
+                    <input
+                      type="file"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCredentialFiles(files);
+                        setDocuments(files.map((f) => f.name));
+                      }}
+                    />
                   </div>
                 </div>
               </>

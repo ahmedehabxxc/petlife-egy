@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, PawPrint, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
+import api from "@/services/api";
 
 interface AdoptionListing {
   id: string;
@@ -17,13 +18,6 @@ interface AdoptionListing {
   listedAt: string;
 }
 
-const mockListings: AdoptionListing[] = [
-  { id: "a1", petName: "Milo", species: "Dog", breed: "Husky", ownerName: "Ahmed M.", photo: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=200&h=200&fit=crop", status: "pending", listedAt: "Jan 5, 2025" },
-  { id: "a2", petName: "Snowball", species: "Rabbit", breed: "Holland Lop", ownerName: "Sara E.", photo: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=200&h=200&fit=crop", status: "pending", listedAt: "Jan 4, 2025" },
-  { id: "a3", petName: "Rocky", species: "Dog", breed: "German Shepherd", ownerName: "Omar F.", photo: "https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=200&h=200&fit=crop", status: "approved", listedAt: "Jan 2, 2025" },
-  { id: "a4", petName: "Cleo", species: "Cat", breed: "Siamese", ownerName: "Nadia R.", photo: "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=200&h=200&fit=crop", status: "approved", listedAt: "Dec 28, 2024" },
-];
-
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/20",
   approved: "bg-success/10 text-success border-success/20",
@@ -31,16 +25,50 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminAdoptions = () => {
-  const [listings, setListings] = useState(mockListings);
+  const [listings, setListings] = useState<AdoptionListing[]>([]);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const loadListings = async () => {
+      try {
+        const response = await api.get("/Admin/adoptions");
+        const data = response.data || [];
+        const mapped = data.map((l: any) => ({
+          id: String(l.id ?? l.Id),
+          petName: l.petName ?? l.PetName ?? "Pet",
+          species: l.species ?? l.Species ?? "Unknown",
+          breed: l.breed ?? l.Breed ?? "",
+          ownerName: l.ownerName ?? l.OwnerName ?? "Owner",
+          photo: l.photo ?? l.Photo,
+          status: (l.status ?? l.Status ?? "pending") as AdoptionListing["status"],
+          listedAt: l.listedAt ? new Date(l.listedAt).toLocaleDateString() : "—",
+        }));
+        setListings(mapped);
+      } catch {
+        toast.error("Failed to load adoption requests");
+      }
+    };
+
+    void loadListings();
+  }, []);
 
   const filtered = listings.filter((l) =>
     l.petName.toLowerCase().includes(search.toLowerCase()) || l.ownerName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAction = (id: string, action: "approved" | "rejected") => {
-    setListings(listings.map((l) => l.id === id ? { ...l, status: action } : l));
-    toast.success(`Listing ${action}`);
+  const handleAction = async (id: string, action: "approved" | "rejected") => {
+    try {
+      if (action === "approved") {
+        await api.post(`/Admin/adoptions/${id}/approve`);
+      } else {
+        await api.post(`/Admin/adoptions/${id}/reject`);
+      }
+      setListings(listings.map((l) => (l.id === id ? { ...l, status: action } : l)));
+      toast.success(`Listing ${action}`);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to update listing";
+      toast.error(message);
+    }
   };
 
   return (

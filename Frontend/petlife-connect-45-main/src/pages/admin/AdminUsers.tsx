@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, UserCheck, UserX, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import api from "@/services/api";
 import type { UserRole } from "@/types";
 
 interface AdminUser {
@@ -19,16 +20,6 @@ interface AdminUser {
   joined: string;
 }
 
-const mockUsers: AdminUser[] = [
-  { id: "1", name: "Mariam Khaled", email: "mariam@example.com", role: "pet_owner", status: "active", joined: "Dec 2024" },
-  { id: "2", name: "Dr. Ahmed Hassan", email: "ahmed@example.com", role: "veterinarian", status: "active", joined: "Nov 2024" },
-  { id: "3", name: "Youssef Said", email: "youssef@example.com", role: "pet_owner", status: "active", joined: "Oct 2024" },
-  { id: "4", name: "Sara El-Masry", email: "sara@example.com", role: "veterinarian", status: "active", joined: "Sep 2024" },
-  { id: "5", name: "Mohamed Ali", email: "mohamed@example.com", role: "shop_owner", status: "active", joined: "Aug 2024" },
-  { id: "6", name: "Nadia Raouf", email: "nadia@example.com", role: "pet_owner", status: "suspended", joined: "Jul 2024" },
-  { id: "7", name: "Omar Farouk", email: "omar@example.com", role: "shop_owner", status: "active", joined: "Jun 2024" },
-];
-
 const roleBadge: Record<UserRole, string> = {
   pet_owner: "bg-primary/10 text-primary border-primary/20",
   veterinarian: "bg-secondary/10 text-secondary border-secondary/20",
@@ -37,9 +28,31 @@ const roleBadge: Record<UserRole, string> = {
 };
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await api.get("/Admin/users");
+        const data = response.data || [];
+        const mapped = data.map((u: any) => ({
+          id: String(u.id ?? u.userId ?? u.UserId ?? ""),
+          name: u.name ?? u.userName ?? u.UserName ?? "User",
+          email: u.email ?? u.Email ?? "",
+          role: (u.role ?? u.Role ?? "pet_owner") as UserRole,
+          status: (u.status ?? u.Status ?? "active") as "active" | "suspended",
+          joined: u.joined ? new Date(u.joined).toLocaleDateString() : "—",
+        }));
+        setUsers(mapped);
+      } catch {
+        toast.error("Failed to load users");
+      }
+    };
+
+    void loadUsers();
+  }, []);
 
   const filtered = users.filter((u) => {
     const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -47,9 +60,19 @@ const AdminUsers = () => {
     return matchesSearch && matchesRole;
   });
 
-  const toggleStatus = (id: string) => {
-    setUsers(users.map((u) => u.id === id ? { ...u, status: u.status === "active" ? "suspended" as const : "active" as const } : u));
-    toast.success("User status updated");
+  const toggleStatus = async (id: string) => {
+    const user = users.find((u) => u.id === id);
+    if (!user) return;
+    const nextStatus = user.status === "active" ? "suspended" : "active";
+
+    try {
+      await api.put(`/Admin/users/${id}/status`, { isActive: nextStatus === "active" });
+      setUsers(users.map((u) => (u.id === id ? { ...u, status: nextStatus as "active" | "suspended" } : u)));
+      toast.success("User status updated");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to update status";
+      toast.error(message);
+    }
   };
 
   return (
