@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MessageCircle, CheckCircle2, XCircle, DollarSign } from "lucide-react";
+import { Search, MessageCircle, CheckCircle2, XCircle, DollarSign, PlayCircle, StopCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import type { ChatMessage } from "@/hooks/useSignalR";
@@ -13,6 +13,7 @@ import api from "@/services/api";
 
 const statusColors: Record<string, string> = {
   accepted: "bg-success/10 text-success border-success/20",
+  in_progress: "bg-primary/10 text-primary border-primary/20",
   pending: "bg-warning/10 text-warning border-warning/20",
   declined: "bg-destructive/10 text-destructive border-destructive/20",
   completed: "bg-muted text-muted-foreground",
@@ -34,26 +35,28 @@ const VetConsultations = () => {
         params: { userId: resolvedUserId },
       });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped = rows.map((r: any) => ({
-        id: String(r.id ?? r.Id ?? ""),
-        petOwnerId: String(r.petOwnerId ?? r.PetOwnerId ?? ""),
-        petOwnerName: r.petOwnerName ?? r.PetOwnerName ?? "Owner",
+        const mapped = rows.map((r: any) => ({
+          id: String(r.id ?? r.Id ?? ""),
+          petOwnerId: String(r.petOwnerId ?? r.PetOwnerId ?? ""),
+          petOwnerName: r.petOwnerName ?? r.PetOwnerName ?? "Owner",
         petOwnerAvatar: r.petOwnerAvatar ?? r.PetOwnerAvatar ?? undefined,
         vetId: String(r.vetId ?? r.VetId ?? ""),
         vetUserId: Number(r.vetUserId ?? r.VetUserId ?? 0),
         vetName: r.vetName ?? r.VetName ?? "Vet",
         vetAvatar: r.vetAvatar ?? r.VetAvatar ?? undefined,
         petId: String(r.petId ?? r.PetId ?? ""),
-        petName: r.petName ?? r.PetName ?? "Pet",
-        petSpecies: r.petSpecies ?? r.PetSpecies ?? "Unknown",
-        fee: Number(r.fee ?? r.Fee ?? 0),
-        status: (r.status ?? r.Status ?? "pending") as ConsultationRequest["status"],
-        createdAt: r.createdAt ?? r.CreatedAt ?? new Date().toISOString(),
-      }));
-      setRequests(mapped);
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Failed to load consultations";
-      toast.error(message);
+          petName: r.petName ?? r.PetName ?? "Pet",
+          petSpecies: r.petSpecies ?? r.PetSpecies ?? "Unknown",
+          fee: Number(r.fee ?? r.Fee ?? 0),
+          status: (r.status ?? r.Status ?? "pending") as ConsultationRequest["status"],
+          createdAt: r.createdAt ?? r.CreatedAt ?? new Date().toISOString(),
+          startedAt: r.startedAt ?? r.StartedAt ?? undefined,
+          endedAt: r.endedAt ?? r.EndedAt ?? undefined,
+        }));
+        setRequests(mapped);
+      } catch (error: any) {
+        const message = error.response?.data?.message || "Failed to load consultations";
+        toast.error(message);
     }
   };
 
@@ -90,6 +93,31 @@ const VetConsultations = () => {
       toast.info("Consultation request declined.");
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to decline request";
+      toast.error(message);
+    }
+  };
+
+  const handleStart = async (id: string) => {
+    try {
+      await api.post(`/Consultations/${id}/start`);
+      await loadRequests();
+      toast.success("Consultation started.");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to start consultation";
+      toast.error(message);
+    }
+  };
+
+  const handleEnd = async (id: string) => {
+    try {
+      await api.post(`/Consultations/${id}/end`, {});
+      await loadRequests();
+      if (activeChat?.id === id) {
+        setActiveChat(null);
+      }
+      toast.success("Consultation ended.");
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to end consultation";
       toast.error(message);
     }
   };
@@ -248,14 +276,44 @@ const VetConsultations = () => {
                     </div>
                   )}
                   {req.status === "accepted" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setActiveChat(req)}
-                    >
-                      <MessageCircle className="mr-1 h-3 w-3" /> Chat
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setActiveChat(req)}
+                      >
+                        <MessageCircle className="mr-1 h-3 w-3" /> Chat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                        onClick={() => handleStart(req.id)}
+                      >
+                        <PlayCircle className="mr-1 h-3 w-3" /> Start
+                      </Button>
+                    </div>
+                  )}
+                  {req.status === "in_progress" && (
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setActiveChat(req)}
+                      >
+                        <MessageCircle className="mr-1 h-3 w-3" /> Chat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
+                        onClick={() => handleEnd(req.id)}
+                      >
+                        <StopCircle className="mr-1 h-3 w-3" /> End
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>

@@ -48,6 +48,9 @@ namespace petLifeApp.Models
         [Column("IsVerified")]
         public bool? IsVerified { get; set; }
 
+        [Column("IsOnline")]
+        public bool? IsOnline { get; set; }
+
         [Column("ClinicLocationUrl")]
         public string? ClinicLocationUrl { get; set; }
 

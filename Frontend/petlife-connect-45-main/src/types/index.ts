@@ -60,8 +60,22 @@ export interface MedicalRecord {
   vetId: string;
   vetName: string;
   date: string;
+  recordType?: string;
   diagnosis: string;
   treatment: string;
+  notes?: string;
+  prescription?: string;
+  consultationId?: string;
+  vaccineName?: string;
+  nextDueDate?: string;
+}
+
+export interface VaccinationLog {
+  id: string;
+  petId: string;
+  vaccineName: string;
+  date: string;
+  nextDueDate?: string;
   notes?: string;
 }
 
@@ -78,13 +92,14 @@ export interface Veterinarian {
   rating: number;
   reviewCount: number;
   isVerified: boolean;
+  isOnline?: boolean;
   consultationFee: number;
   lat?: number;
   lng?: number;
 }
 
 // ===== Consultation Requests =====
-export type ConsultationRequestStatus = "pending" | "accepted" | "declined" | "completed";
+export type ConsultationRequestStatus = "pending" | "accepted" | "in_progress" | "declined" | "completed";
 
 export interface ConsultationRequest {
   id: string;
@@ -101,6 +116,8 @@ export interface ConsultationRequest {
   fee: number;
   status: ConsultationRequestStatus;
   createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
 }
 
 // ===== Products & Cart =====

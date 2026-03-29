@@ -27,6 +27,9 @@ namespace petLifeApp.Models
         [Column("AvatarUrl")]
         public string? AvatarUrl { get; set; }
 
+        [Column("IsOnline")]
+        public bool? IsOnline { get; set; }
+
         [Column("UpdatedAt")]
         public DateTime? UpdatedAt { get; set; }
     }

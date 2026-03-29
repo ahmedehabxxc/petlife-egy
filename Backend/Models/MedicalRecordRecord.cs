@@ -21,11 +21,29 @@ namespace petLifeApp.Models
         [Column("Title")]
         public string? Diagnosis { get; set; }
 
+        [Column("RecordType")]
+        public string? RecordType { get; set; }
+
+        [Column("ConsultationId")]
+        public Guid? ConsultationId { get; set; }
+
         [Column("Treatment")]
         public string? Treatment { get; set; }
 
         [Column("Notes")]
         public string? Notes { get; set; }
+
+        [Column("Prescription")]
+        public string? Prescription { get; set; }
+
+        [Column("ChatTranscript")]
+        public string? ChatTranscript { get; set; }
+
+        [Column("VaccineName")]
+        public string? VaccineName { get; set; }
+
+        [Column("NextDueDate")]
+        public DateTime? NextDueDate { get; set; }
 
         [Column("AttachmentUrl")]
         public string? AttachmentUrl { get; set; }
