@@ -190,6 +190,7 @@ namespace petLifeApp.Controllers
                     Bio = request.Bio ?? existing.Bio,
                     ConsultationFee = request.ConsultationFee ?? existing.ConsultationFee,
                     AvatarUrl = request.AvatarUrl ?? existing.AvatarUrl,
+                    IsOnline = existing.IsOnline,
                     UpdatedAt = now
                 };
 
@@ -212,9 +213,41 @@ namespace petLifeApp.Controllers
             }
         }
 
-        [HttpPost("credentials")]
-        public async Task<IActionResult> UploadCredentials([FromForm] IFormFile file)
+        [HttpPut("me/availability")]
+        public async Task<IActionResult> UpdateAvailability([FromBody] UpdateVetAvailabilityRequest request)
         {
+            var resolvedUserId = await ResolveUserIdAsync(null);
+            if (resolvedUserId <= 0)
+                return Unauthorized(new { message = "Missing or invalid Authorization header." });
+
+            try
+            {
+                var adminClient = GetAdminClient();
+                var existing = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.UserId == resolvedUserId).Single();
+                if (existing == null)
+                    return NotFound(new { message = "Vet profile not found." });
+
+                var update = new VeterinarianExtrasUpdate
+                {
+                    Id = existing.Id,
+                    IsOnline = request.IsOnline,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await adminClient.From<VeterinarianExtrasUpdate>().Update(update);
+                return Ok(new { vetId = existing.Id, isOnline = request.IsOnline });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("credentials")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadCredentials([FromForm] UploadCredentialsRequest request)
+        {
+            var file = request.File;
             if (file == null || file.Length == 0)
                 return BadRequest(new { message = "File is required." });
 
@@ -296,7 +329,8 @@ namespace petLifeApp.Controllers
                 0,
                 vet.IsVerified ?? false,
                 fee,
-                vet.ClinicLocationUrl
+                vet.ClinicLocationUrl,
+                vet.IsOnline ?? false
             );
         }
 
@@ -318,7 +352,8 @@ namespace petLifeApp.Controllers
                 vet.ConsultationFee ?? 150,
                 vet.IsVerified ?? false,
                 vet.CredentialsFileName,
-                vet.CredentialsContentType
+                vet.CredentialsContentType,
+                vet.IsOnline ?? false
             );
         }
     }
@@ -336,7 +371,8 @@ namespace petLifeApp.Controllers
         int ReviewCount,
         bool IsVerified,
         decimal ConsultationFee,
-        string? ClinicLocationUrl
+        string? ClinicLocationUrl,
+        bool IsOnline
     );
 
     public record VetProfileDto(
@@ -355,7 +391,8 @@ namespace petLifeApp.Controllers
         decimal ConsultationFee,
         bool IsVerified,
         string? CredentialsFileName,
-        string? CredentialsContentType
+        string? CredentialsContentType,
+        bool IsOnline
     );
 
     public record UpdateVetProfileRequest(
@@ -371,4 +408,11 @@ namespace petLifeApp.Controllers
         string? AvatarUrl,
         string? Phone
     );
+
+    public class UploadCredentialsRequest
+    {
+        public IFormFile File { get; set; } = null!;
+    }
+
+    public record UpdateVetAvailabilityRequest(bool IsOnline);
 }

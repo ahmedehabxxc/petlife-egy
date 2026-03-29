@@ -100,6 +100,8 @@ namespace petLifeApp.Controllers
                     PetId = request.PetId,
                     Status = "pending",
                     Fee = vet.ConsultationFee ?? 150,
+                    StartedAt = null,
+                    EndedAt = null,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -165,7 +167,9 @@ namespace petLifeApp.Controllers
                         pet?.Type ?? "Unknown",
                         row.Fee ?? 150,
                         row.Status ?? "pending",
-                        row.CreatedAt
+                        row.CreatedAt,
+                        row.StartedAt,
+                        row.EndedAt
                     ));
                 }
 
@@ -210,7 +214,9 @@ namespace petLifeApp.Controllers
                         pet?.Type ?? "Unknown",
                         row.Fee ?? 150,
                         row.Status ?? "pending",
-                        row.CreatedAt
+                        row.CreatedAt,
+                        row.StartedAt,
+                        row.EndedAt
                     ));
                 }
 
@@ -240,6 +246,176 @@ namespace petLifeApp.Controllers
             return await UpdateStatus(id, "completed", "Consultation completed", "Your consultation was marked as completed.");
         }
 
+        [HttpPost("{id:guid}/start")]
+        public async Task<IActionResult> Start(Guid id)
+        {
+            try
+            {
+                var adminClient = GetAdminClient();
+                var resolvedUserId = await ResolveUserIdAsync(null);
+                if (resolvedUserId <= 0)
+                    return Unauthorized(new { message = "Missing or invalid Authorization header." });
+
+                var existing = await adminClient.From<ConsultationRequestRecord>().Where(x => x.Id == id).Single();
+                if (existing == null)
+                    return NotFound(new { message = "Consultation request not found." });
+
+                var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == existing.VetId).Single();
+                if (vet == null || vet.UserId != resolvedUserId)
+                    return Unauthorized(new { message = "You cannot start this consultation." });
+
+                if (!string.Equals(existing.Status, "accepted", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { message = "Only accepted consultations can be started." });
+
+                var now = DateTime.UtcNow;
+                var update = new ConsultationRequestRecord
+                {
+                    Id = existing.Id,
+                    PetOwnerId = existing.PetOwnerId,
+                    VetId = existing.VetId,
+                    PetId = existing.PetId,
+                    Status = "in_progress",
+                    Fee = existing.Fee,
+                    StartedAt = existing.StartedAt ?? now,
+                    EndedAt = null,
+                    CreatedAt = existing.CreatedAt,
+                    UpdatedAt = now
+                };
+                await adminClient.From<ConsultationRequestRecord>().Update(update);
+
+                var notification = new NotificationInsert
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = existing.PetOwnerId,
+                    SenderId = vet.UserId,
+                    Title = "Consultation started",
+                    Message = "Your consultation has started.",
+                    IsRead = false,
+                    ActionUrl = $"/consultations?conversationId={existing.Id}",
+                    Type = "consultation_update",
+                    RelatedId = existing.Id,
+                    CreatedAt = now
+                };
+                await adminClient.From<NotificationInsert>().Insert(notification);
+
+                return Ok(new { id, status = "in_progress", startedAt = update.StartedAt });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id:guid}/end")]
+        public async Task<IActionResult> End(Guid id, [FromBody] EndConsultationRequest? request = null)
+        {
+            try
+            {
+                var adminClient = GetAdminClient();
+                var resolvedUserId = await ResolveUserIdAsync(null);
+                if (resolvedUserId <= 0)
+                    return Unauthorized(new { message = "Missing or invalid Authorization header." });
+
+                var existing = await adminClient.From<ConsultationRequestRecord>().Where(x => x.Id == id).Single();
+                if (existing == null)
+                    return NotFound(new { message = "Consultation request not found." });
+
+                var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == existing.VetId).Single();
+                if (vet == null || vet.UserId != resolvedUserId)
+                    return Unauthorized(new { message = "You cannot end this consultation." });
+
+                if (!string.Equals(existing.Status, "in_progress", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { message = "Only in-progress consultations can be ended." });
+
+                var now = DateTime.UtcNow;
+                var startedAt = existing.StartedAt ?? existing.CreatedAt ?? now;
+                var update = new ConsultationRequestRecord
+                {
+                    Id = existing.Id,
+                    PetOwnerId = existing.PetOwnerId,
+                    VetId = existing.VetId,
+                    PetId = existing.PetId,
+                    Status = "completed",
+                    Fee = existing.Fee,
+                    StartedAt = startedAt,
+                    EndedAt = now,
+                    CreatedAt = existing.CreatedAt,
+                    UpdatedAt = now
+                };
+                await adminClient.From<ConsultationRequestRecord>().Update(update);
+
+                var durationMinutes = Math.Max(0, (int)Math.Round((now - startedAt).TotalMinutes));
+
+                if (request != null &&
+                    (!string.IsNullOrWhiteSpace(request.Diagnosis) ||
+                     !string.IsNullOrWhiteSpace(request.Treatment) ||
+                     !string.IsNullOrWhiteSpace(request.Notes) ||
+                     !string.IsNullOrWhiteSpace(request.Prescription) ||
+                     request.IncludeChatTranscript))
+                {
+                    string? chatTranscript = null;
+                    if (request.IncludeChatTranscript)
+                    {
+                        var conversation = await adminClient
+                            .From<Notification>()
+                            .Where(x => x.ConversationId == existing.Id)
+                            .Get();
+
+                        var chatLines = conversation.Models
+                            .Where(n => string.Equals(n.Type, "message", StringComparison.OrdinalIgnoreCase))
+                            .OrderBy(n => n.CreatedAt)
+                            .Select(n =>
+                            {
+                                var sender = n.SenderId == vet.UserId ? "Vet" : "Pet Owner";
+                                return $"{sender}: {n.Message}";
+                            });
+
+                        chatTranscript = string.Join(Environment.NewLine, chatLines);
+                    }
+
+                    var medicalRecord = new MedicalRecordRecord
+                    {
+                        Id = Guid.NewGuid(),
+                        PetId = existing.PetId,
+                        VetId = existing.VetId,
+                        ConsultationId = existing.Id,
+                        RecordType = "consultation",
+                        RecordDate = now,
+                        Diagnosis = request.Diagnosis,
+                        Treatment = request.Treatment,
+                        Notes = request.Notes,
+                        Prescription = request.Prescription,
+                        ChatTranscript = chatTranscript,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+
+                    await adminClient.From<MedicalRecordRecord>().Insert(medicalRecord);
+                }
+
+                var notification = new NotificationInsert
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = existing.PetOwnerId,
+                    SenderId = vet.UserId,
+                    Title = "Consultation ended",
+                    Message = "Your consultation has ended.",
+                    IsRead = false,
+                    ActionUrl = $"/consultations?conversationId={existing.Id}",
+                    Type = "consultation_update",
+                    RelatedId = existing.Id,
+                    CreatedAt = now
+                };
+                await adminClient.From<NotificationInsert>().Insert(notification);
+
+                return Ok(new { id, status = "completed", startedAt = update.StartedAt, endedAt = update.EndedAt, durationMinutes });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         private async Task<IActionResult> UpdateStatus(Guid id, string status, string title, string message)
         {
             try
@@ -257,6 +433,24 @@ namespace petLifeApp.Controllers
                 if (vet == null || vet.UserId != resolvedUserId)
                     return Unauthorized(new { message = "You cannot update this request." });
 
+                if (string.Equals(status, "accepted", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(existing.Status, "pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "Only pending consultations can be accepted." });
+                }
+
+                if (string.Equals(status, "declined", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(existing.Status, "pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "Only pending consultations can be declined." });
+                }
+
+                if (string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(existing.Status, "in_progress", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "Only in-progress consultations can be completed." });
+                }
+
                 var update = new ConsultationRequestRecord
                 {
                     Id = existing.Id,
@@ -265,6 +459,10 @@ namespace petLifeApp.Controllers
                     PetId = existing.PetId,
                     Status = status,
                     Fee = existing.Fee,
+                    StartedAt = existing.StartedAt,
+                    EndedAt = string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase)
+                        ? (existing.EndedAt ?? DateTime.UtcNow)
+                        : existing.EndedAt,
                     CreatedAt = existing.CreatedAt,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -311,6 +509,16 @@ namespace petLifeApp.Controllers
         string PetSpecies,
         decimal Fee,
         string Status,
-        DateTime? CreatedAt
+        DateTime? CreatedAt,
+        DateTime? StartedAt,
+        DateTime? EndedAt
+    );
+
+    public record EndConsultationRequest(
+        string? Diagnosis,
+        string? Treatment,
+        string? Notes,
+        string? Prescription,
+        bool IncludeChatTranscript
     );
 }

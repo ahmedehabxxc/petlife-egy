@@ -24,6 +24,12 @@ namespace petLifeApp.Models
         [Column("Fee")]
         public decimal? Fee { get; set; }
 
+        [Column("StartedAt")]
+        public DateTime? StartedAt { get; set; }
+
+        [Column("EndedAt")]
+        public DateTime? EndedAt { get; set; }
+
         [Column("CreatedAt")]
         public DateTime? CreatedAt { get; set; }
 
