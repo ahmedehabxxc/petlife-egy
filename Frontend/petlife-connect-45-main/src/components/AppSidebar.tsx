@@ -63,7 +63,7 @@ const adminLinks = [
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Verifications", url: "/admin/verify", icon: ShieldCheck },
   { title: "Adoptions", url: "/admin/adoptions", icon: Heart },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Reports", url: "/admin/reports", icon: BarChart3 },
 ];
 
 export function AppSidebar() {

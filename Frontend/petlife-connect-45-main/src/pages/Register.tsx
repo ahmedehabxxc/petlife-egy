@@ -62,7 +62,7 @@ const Register = () => {
 
     try {
       if (isVet) {
-        await api.post("/Auth/register", {
+        const response = await api.post("/Auth/register", {
           email,
           password,
           firstName: name,
@@ -73,9 +73,24 @@ const Register = () => {
           yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
         });
 
+        const data = response.data;
+        const token = data?.token as string | undefined;
+        const primaryCredential = credentialFiles[0];
+
+        if (primaryCredential && token) {
+          const formData = new FormData();
+          formData.append("file", primaryCredential);
+
+          await api.post("/Veterinarians/credentials", formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          });
+        }
+
         setSubmitted(true);
         toast.success("Registration submitted for review!");
-        navigate("/login");
       } else {
         // Non-vet roles: register through the backend API
         const response = await api.post("/Auth/register", {
@@ -101,7 +116,7 @@ const Register = () => {
             email: resolvedEmail,
             name: resolvedName,
             role: resolvedRole,
-            status: "active",
+            status: data.status || "active",
             createdAt: new Date().toISOString(),
           };
 

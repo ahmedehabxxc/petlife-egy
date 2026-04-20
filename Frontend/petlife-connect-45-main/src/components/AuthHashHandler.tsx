@@ -54,9 +54,18 @@ const AuthHashHandler = () => {
           email: data.email || "",
           name: data.name || data.email || "User",
           role: data.role || "pet_owner",
-          status: "active",
+          status: data.status || "active",
           createdAt: new Date().toISOString(),
         };
+
+        if (realUser.status === "pending_approval") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Your veterinarian account is pending admin approval.");
+          clearHash();
+          navigate("/login");
+          return;
+        }
 
         login(realUser, accessToken);
         toast.success("Email verified. You're signed in.");

@@ -33,6 +33,20 @@ namespace petLifeApp.Controllers
             return _supabase;
         }
 
+        private async Task<VeterinarianProfileRecord?> GetVeterinarianProfileAsync(long? userId)
+        {
+            if (!userId.HasValue || userId.Value <= 0)
+            {
+                return null;
+            }
+
+            var adminClient = GetAdminClient();
+            return await adminClient
+                .From<VeterinarianProfileRecord>()
+                .Where(x => x.UserId == userId.Value)
+                .Single();
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] AuthRegisterRequest request)
         {
@@ -226,7 +240,13 @@ namespace petLifeApp.Controllers
                     }
                 }
 
+                var vetProfile = string.Equals(role, "veterinarian", StringComparison.OrdinalIgnoreCase)
+                    ? await GetVeterinarianProfileAsync(dbUser?.UserId)
+                    : null;
                 var token = session.AccessToken ?? session.RefreshToken ?? "";
+                var status = string.Equals(role, "veterinarian", StringComparison.OrdinalIgnoreCase)
+                    ? (vetProfile?.IsVerified == true ? "active" : "pending_approval")
+                    : "active";
 
                 return Ok(new
                 {
@@ -235,6 +255,7 @@ namespace petLifeApp.Controllers
                     email = request.Email,
                     name = string.IsNullOrWhiteSpace(fullName) ? request.Email : fullName,
                     role,
+                    status,
                     confirmationRequired = string.IsNullOrEmpty(token),
                     token
                 });
@@ -268,6 +289,20 @@ namespace petLifeApp.Controllers
                         message = "User record not found. Check RLS policies or ensure the Users.AuthId matches auth.users id."
                     });
 
+                VeterinarianProfileRecord? vetProfile = null;
+                if (string.Equals(dbUser.Role, "veterinarian", StringComparison.OrdinalIgnoreCase))
+                {
+                    vetProfile = await GetVeterinarianProfileAsync(dbUser.UserId);
+                    if (vetProfile?.IsVerified != true)
+                    {
+                        return StatusCode(StatusCodes.Status403Forbidden, new
+                        {
+                            message = "Your veterinarian account is pending admin approval.",
+                            status = "pending_approval"
+                        });
+                    }
+                }
+
                 var token = session.AccessToken ?? session.RefreshToken ?? string.Empty;
                 return Ok(new
                 {
@@ -275,6 +310,7 @@ namespace petLifeApp.Controllers
                     userId = dbUser.UserId,
                     email = dbUser.Email,
                     role = dbUser.Role ?? "pet_owner",
+                    status = vetProfile?.IsVerified == true ? "active" : "active",
                     token,
                     name = dbUser.UserName ?? dbUser.Email
                 });
@@ -316,12 +352,29 @@ namespace petLifeApp.Controllers
                     return Unauthorized(new { message = "User record not found." });
                 }
 
+                var vetProfile = string.Equals(dbUser.Role, "veterinarian", StringComparison.OrdinalIgnoreCase)
+                    ? await GetVeterinarianProfileAsync(dbUser.UserId)
+                    : null;
+                var status = string.Equals(dbUser.Role, "veterinarian", StringComparison.OrdinalIgnoreCase)
+                    ? (vetProfile?.IsVerified == true ? "active" : "pending_approval")
+                    : "active";
+
+                if (string.Equals(status, "pending_approval", StringComparison.OrdinalIgnoreCase))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Your veterinarian account is pending admin approval.",
+                        status
+                    });
+                }
+
                 return Ok(new
                 {
                     authId = dbUser.AuthId,
                     userId = dbUser.UserId,
                     email = dbUser.Email,
                     role = dbUser.Role ?? "pet_owner",
+                    status,
                     name = dbUser.UserName ?? dbUser.Email
                 });
             }

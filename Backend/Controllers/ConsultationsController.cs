@@ -90,6 +90,8 @@ namespace petLifeApp.Controllers
                 var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == request.VetId).Single();
                 if (vet == null)
                     return NotFound(new { message = "Veterinarian not found." });
+                if (vet.IsVerified != true)
+                    return BadRequest(new { message = "This veterinarian is pending admin approval." });
 
                 var id = Guid.NewGuid();
                 var insert = new ConsultationRequestRecord

@@ -75,9 +75,12 @@ namespace petLifeApp.Controllers
             {
                 var adminClient = GetAdminClient();
                 var vetsResult = await adminClient.From<VeterinarianProfileRecord>().Get();
+                var approvedVets = vetsResult.Models
+                    .Where(v => v.IsVerified == true)
+                    .ToList();
 
                 var payload = new List<VeterinarianDto>();
-                foreach (var vet in vetsResult.Models)
+                foreach (var vet in approvedVets)
                 {
                     var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
                     payload.Add(MapVet(vet, user));
@@ -98,7 +101,7 @@ namespace petLifeApp.Controllers
             {
                 var adminClient = GetAdminClient();
                 var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == id).Single();
-                if (vet == null)
+                if (vet == null || vet.IsVerified != true)
                     return NotFound(new { message = "Vet not found." });
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
