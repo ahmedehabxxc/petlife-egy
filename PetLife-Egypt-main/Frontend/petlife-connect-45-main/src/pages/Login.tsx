@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/services/api";
+import type { User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,14 +32,14 @@ const Login = () => {
       const resolvedRole = data.role || "pet_owner";
       const resolvedUserId = Number(data.userId);
 
-      const realUser = {
+      const realUser: User = {
         id: String(resolvedId),
         authId: data.authId || undefined,
         userId: Number.isFinite(resolvedUserId) && resolvedUserId > 0 ? resolvedUserId : undefined,
         email: resolvedEmail,
         name: resolvedName,
         role: resolvedRole,
-        status: "active" as const,
+        status: data.status || "active",
         createdAt: new Date().toISOString(),
       };
 

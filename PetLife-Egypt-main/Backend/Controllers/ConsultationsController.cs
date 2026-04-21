@@ -67,6 +67,22 @@ namespace petLifeApp.Controllers
             }
         }
 
+        private IActionResult HandleConsultationException(Exception ex)
+        {
+            var message = ex.Message ?? "Failed to process consultation request.";
+
+            if (message.Contains("public.ConsultationRequests", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("PGRST205", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    message = "The consultations table is missing in Supabase. Run the SQL in Backend/Database/consultation_requests.sql, then refresh the page."
+                });
+            }
+
+            return BadRequest(new { message });
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateConsultationRequest request)
         {
@@ -90,6 +106,8 @@ namespace petLifeApp.Controllers
                 var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == request.VetId).Single();
                 if (vet == null)
                     return NotFound(new { message = "Veterinarian not found." });
+                if (vet.IsVerified != true)
+                    return BadRequest(new { message = "This veterinarian is pending admin approval." });
 
                 var id = Guid.NewGuid();
                 var insert = new ConsultationRequestRecord
@@ -99,7 +117,7 @@ namespace petLifeApp.Controllers
                     VetId = request.VetId,
                     PetId = request.PetId,
                     Status = "pending",
-                    Fee = vet.ConsultationFee ?? 150,
+                    Fee = 150,
                     StartedAt = null,
                     EndedAt = null,
                     CreatedAt = DateTime.UtcNow,
@@ -127,7 +145,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 
@@ -161,7 +179,7 @@ namespace petLifeApp.Controllers
                         vet.Id,
                         vet.UserId,
                         vetUser?.UserName ?? "Vet",
-                        vet.AvatarUrl,
+                        null,
                         row.PetId,
                         pet?.Name ?? "Pet",
                         pet?.Type ?? "Unknown",
@@ -177,7 +195,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 
@@ -208,7 +226,7 @@ namespace petLifeApp.Controllers
                         vet?.Id ?? Guid.Empty,
                         vet?.UserId ?? 0,
                         vetUser?.UserName ?? "Vet",
-                        vet?.AvatarUrl,
+                        null,
                         row.PetId,
                         pet?.Name ?? "Pet",
                         pet?.Type ?? "Unknown",
@@ -224,7 +242,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 
@@ -302,7 +320,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 
@@ -412,7 +430,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 
@@ -487,7 +505,7 @@ namespace petLifeApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return HandleConsultationException(ex);
             }
         }
 

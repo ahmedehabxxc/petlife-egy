@@ -35,6 +35,7 @@ import AdminDashboard from "./Features/Admin/Pages/AdminDashboard";
 import AdminUsers from "./Features/Admin/Pages/AdminUsers";
 import AdminVerifications from "./Features/Admin/Pages/AdminVerifications";
 import AdminAdoptions from "./Features/Admin/Pages/AdminAdoptions";
+import AdminReports from "./Features/Admin/Pages/AdminReports";
 import NotFound from "./pages/NotFound";
 import ChatBot from './ChatBot';
 
@@ -47,7 +48,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthHashHandler />
-        
+
         {/* ChatBot available globally */}
         <ChatBot />
 
@@ -88,8 +89,10 @@ const App = () => (
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/verify" element={<ProtectedRoute allowedRoles={["admin"]}><AdminVerifications /></ProtectedRoute>} />
             <Route path="/admin/adoptions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAdoptions /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>} />
+
           </Route>
-          
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

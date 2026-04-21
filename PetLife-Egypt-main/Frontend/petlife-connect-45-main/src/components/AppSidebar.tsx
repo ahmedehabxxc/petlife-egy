@@ -63,7 +63,7 @@ const adminLinks = [
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Verifications", url: "/admin/verify", icon: ShieldCheck },
   { title: "Adoptions", url: "/admin/adoptions", icon: Heart },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Reports", url: "/admin/reports", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
@@ -76,7 +76,7 @@ export function AppSidebar() {
 
   const sections: { label: string; links: typeof petOwnerLinks }[] = [];
 
-  if (role === "pet_owner") {
+  if (role === "pet_owner" || !role) {
     sections.push({ label: "Pet Owner", links: petOwnerLinks });
   }
   if (role === "veterinarian") {

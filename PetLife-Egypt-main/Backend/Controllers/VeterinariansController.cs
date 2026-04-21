@@ -5,6 +5,8 @@ using Supabase;
 using Supabase.Postgrest;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace petLifeApp.Controllers
 {
@@ -14,6 +16,10 @@ namespace petLifeApp.Controllers
     {
         private readonly Supabase.Client _supabase;
         private readonly IConfiguration _config;
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public VeterinariansController(Supabase.Client supabase, IConfiguration config)
         {
@@ -32,6 +38,137 @@ namespace petLifeApp.Controllers
             }
 
             return _supabase;
+        }
+
+        private sealed class AuthAdminUserResponse
+        {
+            public AuthAdminUser? User { get; set; }
+        }
+
+        private sealed class AuthAdminUser
+        {
+            public Dictionary<string, JsonElement>? User_Metadata { get; set; }
+            public Dictionary<string, JsonElement>? UserMetadata { get; set; }
+        }
+
+        private sealed class VetMetadataFallback
+        {
+            public string? University { get; set; }
+            public int? YearsOfExperience { get; set; }
+            public string? Bio { get; set; }
+            public string? CredentialFileName { get; set; }
+            public string? CredentialContentType { get; set; }
+        }
+
+        private async Task<VetMetadataFallback?> GetVetMetadataFallbackAsync(Guid? authId)
+        {
+            if (!authId.HasValue || authId.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            var supabaseUrl = _config["Supabase:Url"];
+            var serviceRoleKey = _config["Supabase:ServiceRoleKey"];
+            if (string.IsNullOrWhiteSpace(supabaseUrl) || string.IsNullOrWhiteSpace(serviceRoleKey))
+            {
+                return null;
+            }
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", serviceRoleKey);
+                client.DefaultRequestHeaders.Add("apikey", serviceRoleKey);
+
+                var response = await client.GetAsync($"{supabaseUrl.TrimEnd('/')}/auth/v1/admin/users/{authId.Value}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                var payload = await JsonSerializer.DeserializeAsync<AuthAdminUserResponse>(stream, _jsonOptions);
+                var metadata = payload?.User?.UserMetadata ?? payload?.User?.User_Metadata;
+                if (metadata == null)
+                {
+                    return null;
+                }
+
+                return new VetMetadataFallback
+                {
+                    University = ReadString(metadata, "university"),
+                    YearsOfExperience = ReadInt(metadata, "yearsOfExperience"),
+                    Bio = ReadString(metadata, "bio"),
+                    CredentialFileName = ReadString(metadata, "credentialFileName"),
+                    CredentialContentType = ReadString(metadata, "credentialContentType")
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? ReadString(Dictionary<string, JsonElement> metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, out var element))
+            {
+                return null;
+            }
+
+            if (element.ValueKind == JsonValueKind.String)
+            {
+                var value = element.GetString();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+
+            return element.ToString();
+        }
+
+        private static int? ReadInt(Dictionary<string, JsonElement> metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, out var element))
+            {
+                return null;
+            }
+
+            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var number))
+            {
+                return number;
+            }
+
+            if (element.ValueKind == JsonValueKind.String && int.TryParse(element.GetString(), out var parsed))
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
+        private static VeterinarianProfileRecord MergeVetProfile(VeterinarianProfileRecord vet, VetMetadataFallback? fallback)
+        {
+            if (fallback == null)
+            {
+                return vet;
+            }
+
+            return new VeterinarianProfileRecord
+            {
+                Id = vet.Id,
+                UserId = vet.UserId,
+                Specialization = vet.Specialization,
+                ClinicName = vet.ClinicName,
+                LicenseNumber = vet.LicenseNumber,
+                University = string.IsNullOrWhiteSpace(vet.University) ? fallback.University : vet.University,
+                YearsOfExperience = vet.YearsOfExperience ?? fallback.YearsOfExperience,
+                Bio = string.IsNullOrWhiteSpace(vet.Bio) ? fallback.Bio : vet.Bio,
+                CredentialsFileName = string.IsNullOrWhiteSpace(vet.CredentialsFileName) ? fallback.CredentialFileName : vet.CredentialsFileName,
+                CredentialsContentType = string.IsNullOrWhiteSpace(vet.CredentialsContentType) ? fallback.CredentialContentType : vet.CredentialsContentType,
+                IsVerified = vet.IsVerified,
+                IsOnline = vet.IsOnline,
+                CreatedAt = vet.CreatedAt,
+                UpdatedAt = vet.UpdatedAt
+            };
         }
 
         private async Task<long> ResolveUserIdAsync(long? userId)
@@ -75,12 +212,16 @@ namespace petLifeApp.Controllers
             {
                 var adminClient = GetAdminClient();
                 var vetsResult = await adminClient.From<VeterinarianProfileRecord>().Get();
+                var approvedVets = vetsResult.Models
+                    .Where(v => v.IsVerified == true)
+                    .ToList();
 
                 var payload = new List<VeterinarianDto>();
-                foreach (var vet in vetsResult.Models)
+                foreach (var vet in approvedVets)
                 {
                     var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
-                    payload.Add(MapVet(vet, user));
+                    var mergedVet = MergeVetProfile(vet, await GetVetMetadataFallbackAsync(user?.AuthId));
+                    payload.Add(MapVet(mergedVet, user));
                 }
 
                 return Ok(payload);
@@ -98,11 +239,12 @@ namespace petLifeApp.Controllers
             {
                 var adminClient = GetAdminClient();
                 var vet = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == id).Single();
-                if (vet == null)
+                if (vet == null || vet.IsVerified != true)
                     return NotFound(new { message = "Vet not found." });
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
-                return Ok(MapVet(vet, user));
+                var mergedVet = MergeVetProfile(vet, await GetVetMetadataFallbackAsync(user?.AuthId));
+                return Ok(MapVet(mergedVet, user));
             }
             catch (Exception ex)
             {
@@ -125,7 +267,8 @@ namespace petLifeApp.Controllers
                     return NotFound(new { message = "Vet profile not found." });
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
-                return Ok(MapVetProfile(vet, user));
+                var mergedVet = MergeVetProfile(vet, await GetVetMetadataFallbackAsync(user?.AuthId));
+                return Ok(MapVetProfile(mergedVet, user));
             }
             catch (Exception ex)
             {
@@ -184,12 +327,9 @@ namespace petLifeApp.Controllers
                 var extrasUpdate = new VeterinarianExtrasUpdate
                 {
                     Id = existing.Id,
-                    ClinicAddress = request.ClinicAddress ?? existing.ClinicAddress,
                     University = request.University ?? existing.University,
                     YearsOfExperience = request.YearsOfExperience ?? existing.YearsOfExperience,
                     Bio = request.Bio ?? existing.Bio,
-                    ConsultationFee = request.ConsultationFee ?? existing.ConsultationFee,
-                    AvatarUrl = request.AvatarUrl ?? existing.AvatarUrl,
                     IsOnline = existing.IsOnline,
                     UpdatedAt = now
                 };
@@ -205,7 +345,8 @@ namespace petLifeApp.Controllers
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == existing.UserId).Single();
                 var refreshed = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == existing.Id).Single();
-                return Ok(MapVetProfile(refreshed ?? existing, user));
+                var mergedVet = MergeVetProfile(refreshed ?? existing, await GetVetMetadataFallbackAsync(user?.AuthId));
+                return Ok(MapVetProfile(mergedVet, user));
             }
             catch (Exception ex)
             {
@@ -227,14 +368,17 @@ namespace petLifeApp.Controllers
                 if (existing == null)
                     return NotFound(new { message = "Vet profile not found." });
 
-                var update = new VeterinarianExtrasUpdate
-                {
-                    Id = existing.Id,
-                    IsOnline = request.IsOnline,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await adminClient.From<VeterinarianExtrasUpdate>().Update(update);
+                await adminClient.From<VeterinarianAvailabilityUpdate>().Update(
+                    new VeterinarianAvailabilityUpdate
+                    {
+                        Id = existing.Id,
+                        IsOnline = request.IsOnline,
+                        UpdatedAt = DateTime.UtcNow
+                    },
+                    new QueryOptions
+                    {
+                        Returning = QueryOptions.ReturnType.Minimal
+                    });
                 return Ok(new { vetId = existing.Id, isOnline = request.IsOnline });
             }
             catch (Exception ex)
@@ -315,21 +459,21 @@ namespace petLifeApp.Controllers
 
         private static VeterinarianDto MapVet(VeterinarianProfileRecord vet, User? user)
         {
-            var fee = vet.ConsultationFee ?? 150;
+            var fee = 150m;
             return new VeterinarianDto(
                 vet.Id,
                 vet.UserId,
                 user?.UserName ?? "Veterinarian",
-                vet.AvatarUrl,
+                null,
                 vet.Specialization ?? "General Practice",
                 vet.ClinicName ?? "Clinic",
-                vet.ClinicAddress ?? vet.ClinicLocationUrl ?? "Not set",
+                "Not set",
                 user?.Phone ?? "",
                 4.8m,
                 0,
                 vet.IsVerified ?? false,
                 fee,
-                vet.ClinicLocationUrl,
+                null,
                 vet.IsOnline ?? false
             );
         }
@@ -340,16 +484,16 @@ namespace petLifeApp.Controllers
                 vet.Id,
                 vet.UserId,
                 user?.UserName ?? "Veterinarian",
-                vet.AvatarUrl,
+                null,
                 user?.Phone ?? "",
                 vet.Specialization,
                 vet.ClinicName,
-                vet.ClinicAddress ?? vet.ClinicLocationUrl,
+                null,
                 vet.LicenseNumber,
                 vet.University,
                 vet.YearsOfExperience,
                 vet.Bio,
-                vet.ConsultationFee ?? 150,
+                150,
                 vet.IsVerified ?? false,
                 vet.CredentialsFileName,
                 vet.CredentialsContentType,
