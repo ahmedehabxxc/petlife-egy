@@ -3,7 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ShieldCheck, Search, CheckCircle2, XCircle, FileText, Clock, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/services/api";
@@ -18,6 +24,11 @@ const AdminVerifications = () => {
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(false);
 
   useEffect(() => {
     const loadVerifications = async () => {
@@ -41,6 +52,23 @@ const AdminVerifications = () => {
 
   const pendingCount = registrations.filter((r) => r.status === "pending").length;
 
+  const openDetails = async (id: string) => {
+    setSelectedId(id);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+
+    try {
+      const response = await api.get(`/Admin/verifications/${id}`);
+      setSelectedRegistration(response.data || null);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to load verification details";
+      toast.error(message);
+      setDetailsOpen(false);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   const handleAction = async (id: string, action: "approved" | "rejected") => {
     try {
       if (action === "approved") {
@@ -49,10 +77,35 @@ const AdminVerifications = () => {
         await api.post(`/Admin/verifications/${id}/reject`);
       }
       setRegistrations(registrations.map((r) => (r.id === id ? { ...r, status: action } : r)));
+      if (selectedRegistration?.id === id) {
+        setSelectedRegistration({ ...selectedRegistration, status: action });
+      }
       toast.success(`Registration ${action}!`);
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to update status";
       toast.error(message);
+    }
+  };
+
+  const openDocument = async () => {
+    if (!selectedId) return;
+
+    setDocumentLoading(true);
+    try {
+      const response = await api.get(`/Admin/verifications/${selectedId}/document`, {
+        responseType: "blob",
+      });
+
+      const contentType = response.headers["content-type"] || selectedRegistration?.credentialsContentType || "application/octet-stream";
+      const blob = new Blob([response.data], { type: contentType });
+      const objectUrl = window.URL.createObjectURL(blob);
+      window.open(objectUrl, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60000);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to open credentials document";
+      toast.error(message);
+    } finally {
+      setDocumentLoading(false);
     }
   };
 
@@ -86,7 +139,11 @@ const AdminVerifications = () => {
           <div className="text-center py-12 text-muted-foreground">No verification requests found.</div>
         ) : (
           filtered.map((req) => (
-            <Card key={req.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={req.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => void openDetails(req.id)}
+            >
               <CardContent className="p-5">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -142,7 +199,10 @@ const AdminVerifications = () => {
                     <div className="flex sm:flex-col gap-2">
                       <Button
                         size="sm"
-                        onClick={() => handleAction(req.id, "approved")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleAction(req.id, "approved");
+                        }}
                         className="bg-success hover:bg-success/90 text-success-foreground"
                       >
                         <CheckCircle2 className="mr-1 h-3 w-3" /> Approve
@@ -151,7 +211,10 @@ const AdminVerifications = () => {
                         size="sm"
                         variant="outline"
                         className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                        onClick={() => handleAction(req.id, "rejected")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleAction(req.id, "rejected");
+                        }}
                       >
                         <XCircle className="mr-1 h-3 w-3" /> Reject
                       </Button>
@@ -163,6 +226,119 @@ const AdminVerifications = () => {
           ))
         )}
       </div>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Veterinarian Application</DialogTitle>
+            <DialogDescription>
+              Review the full application details and the uploaded credentials document.
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailsLoading ? (
+            <div className="py-8 text-sm text-muted-foreground">Loading application details...</div>
+          ) : selectedRegistration ? (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-heading text-lg font-bold">{selectedRegistration.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedRegistration.email}</p>
+                </div>
+                <Badge variant="outline" className={statusColors[selectedRegistration.status]}>
+                  {selectedRegistration.status}
+                </Badge>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Phone: </span>
+                  <span className="font-medium">{selectedRegistration.phone || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">License Number: </span>
+                  <span className="font-medium">{selectedRegistration.licenseNumber || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Specialty: </span>
+                  <span className="font-medium">{selectedRegistration.specialty || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Clinic Name: </span>
+                  <span className="font-medium">{selectedRegistration.clinicName || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">University: </span>
+                  <span className="font-medium">{selectedRegistration.university || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Years of Experience: </span>
+                  <span className="font-medium">
+                    {selectedRegistration.yearsOfExperience ?? selectedRegistration.yearsOfExperience === 0
+                      ? `${selectedRegistration.yearsOfExperience} years`
+                      : "Not provided"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Online Status: </span>
+                  <span className="font-medium">{selectedRegistration.isOnline ? "Online" : "Offline"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Submitted: </span>
+                  <span className="font-medium">
+                    {selectedRegistration.submittedAt ? new Date(selectedRegistration.submittedAt).toLocaleString() : "Not available"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Professional Bio</p>
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                  {selectedRegistration.bio || "No bio provided."}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Credentials Document</p>
+                <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedRegistration.credentialsFileName || "No document uploaded"}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!selectedRegistration.hasDocument || documentLoading}
+                    onClick={() => void openDocument()}
+                  >
+                    {documentLoading ? "Opening..." : "Open Document"}
+                  </Button>
+                </div>
+              </div>
+
+              {selectedRegistration.status === "pending" && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    className="bg-success hover:bg-success/90 text-success-foreground"
+                    onClick={() => void handleAction(selectedRegistration.id, "approved")}
+                  >
+                    <CheckCircle2 className="mr-1 h-4 w-4" /> Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => void handleAction(selectedRegistration.id, "rejected")}
+                  >
+                    <XCircle className="mr-1 h-4 w-4" /> Reject
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-8 text-sm text-muted-foreground">No application details found.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@ import type { Veterinarian } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, ShieldCheck, MessageCircle } from "lucide-react";
+import { Star, MapPin, ShieldCheck, MessageCircle, Wifi } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RequestConsultationDialog from "@/components/RequestConsultationDialog";
 
@@ -55,6 +55,10 @@ const VetCard = ({ vet }: VetCardProps) => {
                   <span className="text-foreground">{vet.rating.toFixed(1)}</span>
                   <span className="text-muted-foreground">({vet.reviewCount})</span>
                 </span>
+                <span className={`inline-flex items-center gap-1 text-xs font-medium ${vet.isOnline ? "text-success" : "text-muted-foreground"}`}>
+                  <Wifi className="h-3.5 w-3.5" />
+                  {vet.isOnline ? "Online now" : "Offline"}
+                </span>
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">{vet.clinicName}</span>
@@ -76,7 +80,7 @@ const VetCard = ({ vet }: VetCardProps) => {
               trigger={
                 <Button size="sm" className="rounded-full gap-1.5 px-4 text-xs font-semibold shadow-sm">
                   <MessageCircle className="h-3.5 w-3.5" />
-                  Request Consultation
+                  {vet.isOnline ? "Start Consultation" : "Request Consultation"}
                 </Button>
               }
             />

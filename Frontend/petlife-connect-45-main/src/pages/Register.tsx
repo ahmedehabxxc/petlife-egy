@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { PawPrint, ShieldCheck, Upload, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 const roles: { value: UserRole; label: string; desc: string }[] = [
@@ -22,6 +23,23 @@ const specialties = [
   "General Practice", "Surgery", "Dermatology", "Dentistry",
   "Internal Medicine", "Ophthalmology", "Orthopedics", "Cardiology",
 ];
+
+const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Failed to read file"));
+        return;
+      }
+
+      const commaIndex = result.indexOf(",");
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -36,6 +54,8 @@ const Register = () => {
   const [specialty, setSpecialty] = useState("");
   const [clinicName, setClinicName] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
+  const [university, setUniversity] = useState("");
+  const [bio, setBio] = useState("");
   const [documents, setDocuments] = useState<string[]>([]);
   const [credentialFiles, setCredentialFiles] = useState<File[]>([]);
 
@@ -62,6 +82,11 @@ const Register = () => {
 
     try {
       if (isVet) {
+        const primaryCredential = credentialFiles[0] ?? null;
+        const credentialFileBase64 = primaryCredential
+          ? await fileToBase64(primaryCredential)
+          : null;
+
         const response = await api.post("/Auth/register", {
           email,
           password,
@@ -70,12 +95,16 @@ const Register = () => {
           licenseNumber,
           specialization: specialty,
           clinicName,
+          university,
           yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
+          bio,
+          credentialFileBase64,
+          credentialFileName: primaryCredential?.name ?? null,
+          credentialContentType: primaryCredential?.type ?? null,
         });
 
         const data = response.data;
         const token = data?.token as string | undefined;
-        const primaryCredential = credentialFiles[0];
 
         if (primaryCredential && token) {
           const formData = new FormData();
@@ -162,6 +191,8 @@ const Register = () => {
               <p className="text-xs"><span className="font-medium">License:</span> {licenseNumber}</p>
               <p className="text-xs"><span className="font-medium">Specialty:</span> {specialty}</p>
               <p className="text-xs"><span className="font-medium">Clinic:</span> {clinicName}</p>
+              {university && <p className="text-xs"><span className="font-medium">University:</span> {university}</p>}
+              {bio && <p className="text-xs"><span className="font-medium">Bio:</span> {bio}</p>}
               <div className="flex gap-1 mt-1 flex-wrap">
                 {documents.map((doc) => (
                   <span key={doc} className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-background px-2 py-0.5 rounded border">
@@ -263,6 +294,22 @@ const Register = () => {
                 <div className="space-y-2">
                   <Label htmlFor="experience">Years of Experience *</Label>
                   <Input id="experience" type="number" min="0" max="50" placeholder="e.g. 5" value={yearsOfExperience} onChange={(e) => setYearsOfExperience(e.target.value)} required={isVet} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="university">University</Label>
+                  <Input id="university" placeholder="e.g. Cairo University" value={university} onChange={(e) => setUniversity(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Professional Bio</Label>
+                  <Textarea
+                    id="bio"
+                    placeholder="Tell the admin about your experience and area of care"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={4}
+                  />
                 </div>
 
                 <div className="space-y-2">

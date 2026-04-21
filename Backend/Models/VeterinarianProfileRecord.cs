@@ -18,9 +18,6 @@ namespace petLifeApp.Models
         [Column("ClinicName")]
         public string? ClinicName { get; set; }
 
-        [Column("ClinicAddress")]
-        public string? ClinicAddress { get; set; }
-
         [Column("LicenseNumber")]
         public string? LicenseNumber { get; set; }
 
@@ -33,12 +30,6 @@ namespace petLifeApp.Models
         [Column("Bio")]
         public string? Bio { get; set; }
 
-        [Column("ConsultationFee")]
-        public decimal? ConsultationFee { get; set; }
-
-        [Column("AvatarUrl")]
-        public string? AvatarUrl { get; set; }
-
         [Column("CredentialsFileName")]
         public string? CredentialsFileName { get; set; }
 
@@ -50,9 +41,6 @@ namespace petLifeApp.Models
 
         [Column("IsOnline")]
         public bool? IsOnline { get; set; }
-
-        [Column("ClinicLocationUrl")]
-        public string? ClinicLocationUrl { get; set; }
 
         [Column("CreatedAt")]
         public DateTime? CreatedAt { get; set; }

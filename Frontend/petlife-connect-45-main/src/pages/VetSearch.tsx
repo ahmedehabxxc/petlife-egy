@@ -32,7 +32,22 @@ const VetSearch = () => {
       setLoading(true);
       try {
         const response = await api.get("/Veterinarians");
-        const rows = Array.isArray(response.data) ? response.data : [];
+        const raw = response.data;
+        let rows: any[] = [];
+
+        if (Array.isArray(raw)) {
+          rows = raw;
+        } else if (typeof raw === "string") {
+          try {
+            const parsed = JSON.parse(raw);
+            rows = Array.isArray(parsed) ? parsed : [];
+          } catch {
+            rows = [];
+          }
+        } else if (Array.isArray(raw?.data)) {
+          rows = raw.data;
+        }
+
         const mapped = rows.map((v: any) => ({
           id: String(v.id ?? v.Id ?? ""),
           userId: String(v.userId ?? v.UserId ?? ""),
@@ -45,6 +60,7 @@ const VetSearch = () => {
           rating: Number(v.rating ?? v.Rating ?? 0),
           reviewCount: Number(v.reviewCount ?? v.ReviewCount ?? 0),
           isVerified: Boolean(v.isVerified ?? v.IsVerified ?? false),
+          isOnline: Boolean(v.isOnline ?? v.IsOnline ?? false),
           consultationFee: Number(v.consultationFee ?? v.ConsultationFee ?? 150),
           lat: v.lat ?? v.Lat ?? undefined,
           lng: v.lng ?? v.Lng ?? undefined,
@@ -70,6 +86,10 @@ const VetSearch = () => {
     });
 
     return [...list].sort((a, b) => {
+      if ((a.isOnline ? 1 : 0) !== (b.isOnline ? 1 : 0)) {
+        return (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0);
+      }
+
       switch (sort) {
         case "rating": return b.rating - a.rating;
         case "price_low": return a.consultationFee - b.consultationFee;

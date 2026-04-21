@@ -9,9 +9,6 @@ namespace petLifeApp.Models
         [PrimaryKey("Id", false)]
         public Guid Id { get; set; }
 
-        [Column("ClinicAddress")]
-        public string? ClinicAddress { get; set; }
-
         [Column("University")]
         public string? University { get; set; }
 
@@ -20,12 +17,6 @@ namespace petLifeApp.Models
 
         [Column("Bio")]
         public string? Bio { get; set; }
-
-        [Column("ConsultationFee")]
-        public decimal? ConsultationFee { get; set; }
-
-        [Column("AvatarUrl")]
-        public string? AvatarUrl { get; set; }
 
         [Column("IsOnline")]
         public bool? IsOnline { get; set; }

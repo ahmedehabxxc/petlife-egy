@@ -53,6 +53,7 @@ const VetProfile = () => {
           rating: Number(data.rating ?? data.Rating ?? 0),
           reviewCount: Number(data.reviewCount ?? data.ReviewCount ?? 0),
           isVerified: Boolean(data.isVerified ?? data.IsVerified ?? false),
+          isOnline: Boolean(data.isOnline ?? data.IsOnline ?? false),
           consultationFee: Number(data.consultationFee ?? data.ConsultationFee ?? 150),
           lat: data.lat ?? data.Lat ?? undefined,
           lng: data.lng ?? data.Lng ?? undefined,
@@ -216,6 +217,9 @@ const VetProfile = () => {
                       <ShieldCheck className="h-3 w-3" /> Verified
                     </Badge>
                   )}
+                  <Badge variant="outline" className={vet.isOnline ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}>
+                    {vet.isOnline ? "Online now" : "Offline"}
+                  </Badge>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm">
