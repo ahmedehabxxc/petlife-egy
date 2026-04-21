@@ -38,66 +38,71 @@ import AdminAdoptions from "./Features/Admin/Pages/AdminAdoptions";
 import AdminReports from "./Features/Admin/Pages/AdminReports";
 import NotFound from "./pages/NotFound";
 import ChatBot from './ChatBot';
+import { useAuthStore } from "@/stores/authStore";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthHashHandler />
+const App = () => {
+  const { isAuthenticated } = useAuthStore();
 
-        {/* ChatBot available globally */}
-        <ChatBot />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthHashHandler />
 
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* ChatBot only available when logged in */}
+          {isAuthenticated && <ChatBot />}
 
-          <Route element={<DashboardLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/browse" element={<BrowsePets />} />
-            <Route path="/vets" element={<VetSearch />} />
-            <Route path="/vets/:id" element={<VetProfilePage />} />
-            <Route path="/clinics" element={<ClinicFinder />} />
-            <Route path="/shop" element={<ProductCatalog />} />
-            <Route path="/shop/:id" element={<ProductDetails />} />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-            <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
-            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-            <Route path="/orders/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/browse" element={<BrowsePets />} />
+              <Route path="/vets" element={<VetSearch />} />
+              <Route path="/vets/:id" element={<VetProfilePage />} />
+              <Route path="/clinics" element={<ClinicFinder />} />
+              <Route path="/shop" element={<ProductCatalog />} />
+              <Route path="/shop/:id" element={<ProductDetails />} />
 
-            <Route path="/pets" element={<ProtectedRoute allowedRoles={["pet_owner"]}><MyPets /></ProtectedRoute>} />
-            <Route path="/pets/register" element={<ProtectedRoute allowedRoles={["pet_owner"]}><RegisterPet /></ProtectedRoute>} />
-            <Route path="/pets/:id" element={<ProtectedRoute allowedRoles={["pet_owner"]}><PetProfile /></ProtectedRoute>} />
-            <Route path="/consultations" element={<ProtectedRoute allowedRoles={["pet_owner"]}><ConsultationHistory /></ProtectedRoute>} />
-            <Route path="/matching" element={<ProtectedRoute allowedRoles={["pet_owner"]}><PetMatching /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+              <Route path="/orders/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
 
-            <Route path="/vet/dashboard" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetDashboard /></ProtectedRoute>} />
-            <Route path="/vet/consultations" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetConsultations /></ProtectedRoute>} />
-            <Route path="/vet/records" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetMedicalRecords /></ProtectedRoute>} />
-            <Route path="/vet/credentials" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetCredentials /></ProtectedRoute>} />
+              <Route path="/pets" element={<ProtectedRoute allowedRoles={["pet_owner"]}><MyPets /></ProtectedRoute>} />
+              <Route path="/pets/register" element={<ProtectedRoute allowedRoles={["pet_owner"]}><RegisterPet /></ProtectedRoute>} />
+              <Route path="/pets/:id" element={<ProtectedRoute allowedRoles={["pet_owner"]}><PetProfile /></ProtectedRoute>} />
+              <Route path="/consultations" element={<ProtectedRoute allowedRoles={["pet_owner"]}><ConsultationHistory /></ProtectedRoute>} />
+              <Route path="/matching" element={<ProtectedRoute allowedRoles={["pet_owner"]}><PetMatching /></ProtectedRoute>} />
 
-            <Route path="/shop-owner/dashboard" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerDashboard /></ProtectedRoute>} />
-            <Route path="/shop-owner/inventory" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerInventory /></ProtectedRoute>} />
-            <Route path="/shop-owner/orders" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerOrders /></ProtectedRoute>} />
+              <Route path="/vet/dashboard" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetDashboard /></ProtectedRoute>} />
+              <Route path="/vet/consultations" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetConsultations /></ProtectedRoute>} />
+              <Route path="/vet/records" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetMedicalRecords /></ProtectedRoute>} />
+              <Route path="/vet/credentials" element={<ProtectedRoute allowedRoles={["veterinarian"]}><VetCredentials /></ProtectedRoute>} />
 
-            <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
-            <Route path="/admin/verify" element={<ProtectedRoute allowedRoles={["admin"]}><AdminVerifications /></ProtectedRoute>} />
-            <Route path="/admin/adoptions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAdoptions /></ProtectedRoute>} />
-            <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>} />
+              <Route path="/shop-owner/dashboard" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerDashboard /></ProtectedRoute>} />
+              <Route path="/shop-owner/inventory" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerInventory /></ProtectedRoute>} />
+              <Route path="/shop-owner/orders" element={<ProtectedRoute allowedRoles={["shop_owner"]}><ShopOwnerOrders /></ProtectedRoute>} />
 
-          </Route>
+              <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
+              <Route path="/admin/verify" element={<ProtectedRoute allowedRoles={["admin"]}><AdminVerifications /></ProtectedRoute>} />
+              <Route path="/admin/adoptions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAdoptions /></ProtectedRoute>} />
+              <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReports /></ProtectedRoute>} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

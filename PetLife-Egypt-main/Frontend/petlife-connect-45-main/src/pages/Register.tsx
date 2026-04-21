@@ -288,20 +288,15 @@ const Register = () => {
       {/* ── RIGHT PANEL — Registration Form ── */}
       <div className="flex-1 flex items-start justify-center bg-background p-6 sm:p-10 overflow-y-auto">
         <div className="w-full max-w-md py-6">
-          {/* Logo above form */}
-          <div className="flex flex-col items-center mb-6">
-            <img
-              src="/logo.png"
-              alt="PetLife Egypt"
-              className="w-28 mb-1 drop-shadow-md transition-transform duration-300 hover:scale-105"
-            />
-          </div>
+
 
           <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-2">
-              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <PawPrint className="h-6 w-6 text-primary" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="PetLife Egypt"
+                className="w-24 h-24 mx-auto mb-4 rounded-full object-cover shadow-sm border-4 border-background"
+              />
               <CardTitle className="font-heading text-2xl">Create Account</CardTitle>
               <CardDescription className="text-base">Join PetLife Egypt today</CardDescription>
             </CardHeader>
@@ -434,7 +429,11 @@ const Register = () => {
                   </>
                 )}
 
-                <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-semibold" 
+                  disabled={loading}
+                >
                   {loading ? "Creating…" : isVet ? "Submit for Review" : "Create Account"}
                 </Button>
 

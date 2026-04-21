@@ -4,7 +4,7 @@ import { Users, ShieldCheck, PawPrint, ShoppingBag, TrendingUp, Activity } from 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import api from "@/services/api";
 
-const COLORS = ["hsl(25, 95%, 53%)", "hsl(172, 66%, 40%)", "hsl(45, 93%, 58%)"];
+const COLORS = ["hsl(33, 96%, 41%)", "hsl(172, 66%, 40%)", "hsl(45, 93%, 58%)"];
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -72,7 +72,7 @@ const AdminDashboard = () => {
                 <XAxis dataKey="month" className="text-xs" />
                 <YAxis className="text-xs" />
                 <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }} />
-                <Bar dataKey="users" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="users" fill="hsl(33, 96%, 41%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

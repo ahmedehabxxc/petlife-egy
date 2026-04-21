@@ -106,15 +106,11 @@ const Login = () => {
         <div className="w-full max-w-md">
           <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-2">
-              {/* Logo added here (without white filter) */}
               <img
                 src="/logo.png"
                 alt="PetLife Egypt"
-                className="w-20 mx-auto mb-3"
+                className="w-24 h-24 mx-auto mb-4 rounded-full object-cover shadow-sm border-4 border-background"
               />
-              <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                <PawPrint className="h-7 w-7 text-primary" />
-              </div>
               <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
               <CardDescription className="text-base">Sign in to your PetLife Egypt account</CardDescription>
             </CardHeader>
@@ -144,7 +140,11 @@ const Login = () => {
                     className="h-11"
                   />
                 </div>
-                <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-semibold" 
+                  disabled={loading}
+                >
                   {loading ? "Signing in…" : "Sign In"}
                 </Button>
               </form>

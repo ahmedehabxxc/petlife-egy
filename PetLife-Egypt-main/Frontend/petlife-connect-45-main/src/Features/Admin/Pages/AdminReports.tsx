@@ -19,7 +19,7 @@ import {
 
 const COLORS = [
     "hsl(172, 66%, 40%)",
-    "hsl(25, 95%, 53%)",
+    "hsl(33, 96%, 41%)",
     "hsl(45, 93%, 58%)",
     "hsl(220, 10%, 55%)",
 ];
@@ -76,7 +76,7 @@ const AdminReports = () => {
                                         background: "hsl(var(--card))",
                                     }}
                                 />
-                                <Bar dataKey="users" fill="hsl(25, 95%, 53%)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="users" fill="hsl(33, 96%, 41%)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
