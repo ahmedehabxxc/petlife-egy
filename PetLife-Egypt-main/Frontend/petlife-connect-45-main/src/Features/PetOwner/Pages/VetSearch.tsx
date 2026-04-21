@@ -161,7 +161,7 @@ const VetSearch = () => {
 
       {/* Results */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">Loading veterinariansâ€¦</div>
+        <div className="text-center py-16 text-muted-foreground">Loading Veterinarians</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <div className="h-16 w-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-4">

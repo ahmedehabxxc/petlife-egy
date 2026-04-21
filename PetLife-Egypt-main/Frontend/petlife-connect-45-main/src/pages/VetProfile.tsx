@@ -165,7 +165,7 @@ const VetProfile = () => {
   }
 
   if (loading || !vet) {
-    return <div className="text-center py-12 text-muted-foreground">Loading vet…</div>;
+    return <div className="text-center py-12 text-muted-foreground">Loading Veterinarian…</div>;
   }
 
   const avgRating = vet.rating;

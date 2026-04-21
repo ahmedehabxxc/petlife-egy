@@ -22,7 +22,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Call real backend API
       const response = await api.post("/Auth/login", { email, password });
       const data = response.data;
 
@@ -55,51 +54,117 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <PawPrint className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your PetLife Egypt account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* LEFT PANEL — Pet image & tagline (logo removed) */}
+      <div
+        className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, hsla(33, 96%, 41%, 1.00) 0%, hsla(38, 91%, 44%, 1.00) 100%)",
+
+        }}
+      >
+        {/* Floating paw decorations */}
+        <div className="absolute inset-0 pointer-events-none select-none opacity-20 text-white">
+          <span className="absolute text-5xl top-[8%] left-[10%] animate-bounce" style={{ animationDelay: "0s", animationDuration: "3.5s" }}>🐾</span>
+          <span className="absolute text-4xl top-[20%] right-[15%] animate-bounce" style={{ animationDelay: "0.5s", animationDuration: "4s" }}>🐾</span>
+          <span className="absolute text-6xl bottom-[25%] left-[18%] animate-bounce" style={{ animationDelay: "1s", animationDuration: "3s" }}>🐾</span>
+          <span className="absolute text-3xl bottom-[12%] right-[22%] animate-bounce" style={{ animationDelay: "1.5s", animationDuration: "4.5s" }}>🐾</span>
+          <span className="absolute text-5xl top-[50%] left-[5%] animate-bounce" style={{ animationDelay: "2s", animationDuration: "3.8s" }}>🐾</span>
+        </div>
+
+        {/* Pet mascot image */}
+        <div className="relative z-10 flex items-center justify-center">
+          {/* Warm beige radial glow */}
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              width: "440px",
+              height: "440px",
+              background: "radial-gradient(circle, rgba(245,235,215,0.45) 0%, rgba(210,175,130,0.22) 55%, transparent 78%)",
+              filter: "blur(22px)",
+            }}
+          />
+          <img
+            src="/loginPet.png"
+            alt="PetLife Mascot"
+            className="relative w-[600px] max-w-[90%]"
+            style={{
+              animation: "float 3s ease-in-out infinite",
+
+            }}
+          />
+        </div>
+
+        {/* Tagline */}
+        <p className="relative z-10 mt-8 text-white/90 text-xl font-semibold tracking-wide text-center px-6">
+          Your pet's life, all in one place
+        </p>
+      </div>
+
+      {/* RIGHT PANEL — Login Form with Logo */}
+      <div className="flex-1 flex items-center justify-center bg-background p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
+            <CardHeader className="text-center pb-2">
+              {/* Logo added here (without white filter) */}
+              <img
+                src="/logo.png"
+                alt="PetLife Egypt"
+                className="w-20 mx-auto mb-3"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign In"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">
-              Sign Up
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+              <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <PawPrint className="h-7 w-7 text-primary" />
+              </div>
+              <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
+              <CardDescription className="text-base">Sign in to your PetLife Egypt account</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
+                  {loading ? "Signing in…" : "Sign In"}
+                </Button>
+              </form>
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-primary font-medium hover:underline">
+                  Sign Up
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-18px); }
+        }
+      `}</style>
     </div>
   );
 };
