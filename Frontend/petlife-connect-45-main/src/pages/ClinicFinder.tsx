@@ -2,72 +2,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Clock, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Clinic {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  hours: string;
-  lat: number;
-  lng: number;
-  specialties: string[];
-}
-
-const clinics: Clinic[] = [
-  {
-    id: "cl1",
-    name: "Cairo Pet Care",
-    address: "15 Hassan Sabry St, Zamalek, Cairo",
-    phone: "+20 100 123 4567",
-    hours: "Sat-Thu 9AM-8PM",
-    lat: 30.0561,
-    lng: 31.2243,
-    specialties: ["General", "Vaccination"],
-  },
-  {
-    id: "cl2",
-    name: "Giza Vet Clinic",
-    address: "42 Tahrir St, Dokki, Giza",
-    phone: "+20 100 234 5678",
-    hours: "Daily 10AM-9PM",
-    lat: 30.0384,
-    lng: 31.212,
-    specialties: ["Surgery", "Emergency"],
-  },
-  {
-    id: "cl3",
-    name: "Pet Skin Center",
-    address: "8 Abbas El-Akkad St, Nasr City",
-    phone: "+20 100 345 6789",
-    hours: "Sat-Thu 10AM-6PM",
-    lat: 30.0626,
-    lng: 31.3376,
-    specialties: ["Dermatology"],
-  },
-  {
-    id: "cl4",
-    name: "Smile Paws Clinic",
-    address: "22 Cleopatra St, Heliopolis",
-    phone: "+20 100 456 7890",
-    hours: "Sat-Wed 9AM-7PM",
-    lat: 30.087,
-    lng: 31.323,
-    specialties: ["Dentistry", "General"],
-  },
-  {
-    id: "cl5",
-    name: "PetVet Alexandria",
-    address: "5 Victor Emmanuel St, Smouha",
-    phone: "+20 100 567 8901",
-    hours: "Daily 8AM-10PM",
-    lat: 31.2156,
-    lng: 29.9553,
-    specialties: ["General", "Internal Medicine"],
-  },
-];
+import { useMemo } from "react";
+import { useLocation } from "react-router-dom";
+import { clinics, distanceInKm } from "@/lib/clinics";
 
 const ClinicFinder = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const userLat = Number.parseFloat(searchParams.get("lat") ?? "");
+  const userLng = Number.parseFloat(searchParams.get("lng") ?? "");
+  const typedLocation = (searchParams.get("location") ?? "").trim().toLowerCase();
+  const cameFromChatbot = searchParams.get("fromChatbot") === "1";
+  const hasUserCoordinates = Number.isFinite(userLat) && Number.isFinite(userLng);
+
+  const nearestClinicId = useMemo(() => {
+    if (!hasUserCoordinates) return null;
+    let nearest: { id: string; distance: number } | null = null;
+    for (const clinic of clinics) {
+      const distance = distanceInKm(userLat, userLng, clinic.lat, clinic.lng);
+      if (!nearest || distance < nearest.distance) {
+        nearest = { id: clinic.id, distance };
+      }
+    }
+    return nearest?.id ?? null;
+  }, [hasUserCoordinates, userLat, userLng]);
+
+  const clinicsForDisplay = useMemo(() => {
+    if (!hasUserCoordinates && !typedLocation) return clinics;
+    if (typedLocation) {
+      return [...clinics].sort((a, b) => {
+        const aMatch = `${a.name} ${a.address}`.toLowerCase().includes(typedLocation) ? 0 : 1;
+        const bMatch = `${b.name} ${b.address}`.toLowerCase().includes(typedLocation) ? 0 : 1;
+        return aMatch - bMatch;
+      });
+    }
+    return [...clinics].sort((a, b) => {
+      const d1 = distanceInKm(userLat, userLng, a.lat, a.lng);
+      const d2 = distanceInKm(userLat, userLng, b.lat, b.lng);
+      return d1 - d2;
+    });
+  }, [hasUserCoordinates, typedLocation, userLat, userLng]);
+
   const openNearbySearch = () => {
     const fallback = () => {
       window.open("https://www.google.com/maps/search/?api=1&query=veterinary+clinic", "_blank");
@@ -114,6 +89,16 @@ const ClinicFinder = () => {
     <div className="space-y-6">
       <h1 className="font-heading text-2xl font-bold">Find a Clinic</h1>
 
+      {cameFromChatbot && (nearestClinicId || typedLocation) && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="py-4 text-sm">
+            {nearestClinicId
+              ? "Nearest clinic based on your location is highlighted below."
+              : "Showing clinics that best match the location you typed in chat."}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Use GPS to find clinics nearby</CardTitle>
@@ -129,8 +114,11 @@ const ClinicFinder = () => {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {clinics.map((clinic) => (
-          <Card key={clinic.id} className="hover:shadow-md transition-shadow">
+        {clinicsForDisplay.map((clinic) => (
+          <Card
+            key={clinic.id}
+            className={`hover:shadow-md transition-shadow ${nearestClinicId === clinic.id ? "border-primary ring-1 ring-primary/40" : ""}`}
+          >
             <CardContent className="p-5">
               <h3 className="font-heading font-bold text-base mb-2">{clinic.name}</h3>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -150,6 +138,9 @@ const ClinicFinder = () => {
                     {s}
                   </Badge>
                 ))}
+                {nearestClinicId === clinic.id && (
+                  <Badge className="text-xs">Nearest</Badge>
+                )}
               </div>
               <Button
                 variant="outline"
