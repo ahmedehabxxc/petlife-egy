@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+<<<<<<< HEAD
+=======
+    <PackageReference Include="Mscc.GenerativeAI" Version="3.1.0" />
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Supabase" Version="1.0.0" />
   </ItemGroup>

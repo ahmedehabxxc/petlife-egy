@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+<<<<<<< HEAD
 import { PawPrint } from "lucide-react";
 import { toast } from "sonner";
+=======
+import { toast } from "sonner";
+import VetPendingApproval from "@/pages/VetPendingApproval";
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
+=======
+  const [pendingApproval, setPendingApproval] = useState(false);
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -22,7 +31,10 @@ const Login = () => {
     setLoading(true);
 
     try {
+<<<<<<< HEAD
       // Call real backend API
+=======
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       const response = await api.post("/Auth/login", { email, password });
       const data = response.data;
 
@@ -47,6 +59,14 @@ const Login = () => {
       toast.success("Welcome back!");
       navigate("/");
     } catch (error: any) {
+<<<<<<< HEAD
+=======
+      const status = error.response?.data?.status;
+      if (error.response?.status === 403 && status === "pending_approval") {
+        setPendingApproval(true);
+        return;
+      }
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       const message = error.response?.data?.message || "Invalid credentials";
       toast.error(message);
     } finally {
@@ -54,6 +74,7 @@ const Login = () => {
     }
   };
 
+<<<<<<< HEAD
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -100,8 +121,137 @@ const Login = () => {
           </p>
         </CardContent>
       </Card>
+=======
+  if (pendingApproval) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <VetPendingApproval
+          email={email}
+          onBackToLogin={() => setPendingApproval(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* LEFT PANEL — Pet image & tagline (logo removed) */}
+      <div
+        className="hidden lg:flex lg:w-1/2 relative flex-col items-center justify-center overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, hsla(33, 96%, 41%, 1.00) 0%, hsla(38, 91%, 44%, 1.00) 100%)",
+
+        }}
+      >
+        {/* Floating paw decorations */}
+        <div className="absolute inset-0 pointer-events-none select-none opacity-20 text-white">
+          <span className="absolute text-5xl top-[8%] left-[10%] animate-bounce" style={{ animationDelay: "0s", animationDuration: "3.5s" }}>🐾</span>
+          <span className="absolute text-4xl top-[20%] right-[15%] animate-bounce" style={{ animationDelay: "0.5s", animationDuration: "4s" }}>🐾</span>
+          <span className="absolute text-6xl bottom-[25%] left-[18%] animate-bounce" style={{ animationDelay: "1s", animationDuration: "3s" }}>🐾</span>
+          <span className="absolute text-3xl bottom-[12%] right-[22%] animate-bounce" style={{ animationDelay: "1.5s", animationDuration: "4.5s" }}>🐾</span>
+          <span className="absolute text-5xl top-[50%] left-[5%] animate-bounce" style={{ animationDelay: "2s", animationDuration: "3.8s" }}>🐾</span>
+        </div>
+
+        {/* Pet mascot image */}
+        <div className="relative z-10 flex items-center justify-center">
+          {/* Warm beige radial glow */}
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              width: "440px",
+              height: "440px",
+              background: "radial-gradient(circle, rgba(245,235,215,0.45) 0%, rgba(210,175,130,0.22) 55%, transparent 78%)",
+              filter: "blur(22px)",
+            }}
+          />
+          <img
+            src="/loginPet.png"
+            alt="PetLife Mascot"
+            className="relative w-[600px] max-w-[90%]"
+            style={{
+              animation: "float 3s ease-in-out infinite",
+
+            }}
+          />
+        </div>
+
+        {/* Tagline */}
+        <p className="relative z-10 mt-8 text-white/90 text-xl font-semibold tracking-wide text-center px-6">
+          Your pet's life, all in one place
+        </p>
+      </div>
+
+      {/* RIGHT PANEL — Login Form with Logo */}
+      <div className="flex-1 flex items-center justify-center bg-background p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm">
+            <CardHeader className="text-center pb-2">
+              <img
+                src="/logo.png"
+                alt="PetLife Egypt"
+                className="w-24 h-24 mx-auto mb-4 rounded-full object-cover shadow-sm border-4 border-background"
+              />
+              <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
+              <CardDescription className="text-base">Sign in to your PetLife Egypt account</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-semibold" 
+                  disabled={loading}
+                >
+                  {loading ? "Signing in…" : "Sign In"}
+                </Button>
+              </form>
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-primary font-medium hover:underline">
+                  Sign Up
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-18px); }
+        }
+      `}</style>
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default Login;
+=======
+export default Login;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf

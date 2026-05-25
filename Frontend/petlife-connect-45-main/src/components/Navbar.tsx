@@ -1,6 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
+<<<<<<< HEAD
 import CartDrawer from "@/components/CartDrawer";
+=======
+import CartDrawer from "@/Features/ShopOwner/Components/CartDrawer";
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 import NotificationDropdown from "@/components/NotificationDropdown";
 import {
   PawPrint,

@@ -94,6 +94,10 @@ export interface Veterinarian {
   isVerified: boolean;
   isOnline?: boolean;
   consultationFee: number;
+<<<<<<< HEAD
+=======
+  availableHours?: string;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
   lat?: number;
   lng?: number;
 }

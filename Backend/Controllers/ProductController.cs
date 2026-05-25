@@ -153,6 +153,53 @@ namespace petLifeApp.Controllers
             }
         }
 
+<<<<<<< HEAD
+=======
+        [HttpGet("catalog/{id:guid}")]
+        public async Task<IActionResult> GetCatalogItem(Guid id)
+        {
+            try
+            {
+                var adminClient = GetAdminClient();
+                var shopProduct = await adminClient.From<ShopProductRecord>().Where(x => x.Id == id).Single();
+                if (shopProduct == null || !shopProduct.ProductId.HasValue)
+                    return NotFound(new { message = "Product not found." });
+
+                var product = await adminClient.From<ProductRecord>()
+                    .Where(x => x.Id == shopProduct.ProductId.Value)
+                    .Single();
+                if (product == null)
+                    return NotFound(new { message = "Product not found." });
+
+                var shopName = "Shop";
+                if (shopProduct.ShopOwnerId.HasValue)
+                {
+                    var owner = await adminClient.From<ShopOwnerRecord>()
+                        .Where(x => x.Id == shopProduct.ShopOwnerId.Value)
+                        .Single();
+                    shopName = owner?.ShopName ?? shopName;
+                }
+
+                return Ok(new CatalogProductDto(
+                    shopProduct.Id,
+                    shopProduct.ShopOwnerId,
+                    shopName,
+                    product.Name ?? "Product",
+                    product.Description,
+                    product.Category,
+                    product.ImageUrl,
+                    shopProduct.Price,
+                    shopProduct.StockQuantity,
+                    product.CreatedAt
+                ));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         public record CatalogProductDto(
             Guid Id,
             Guid? ShopOwnerId,

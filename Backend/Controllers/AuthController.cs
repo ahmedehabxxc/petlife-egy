@@ -3,6 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Supabase;
 using System.IdentityModel.Tokens.Jwt;
 using petLifeApp.Models;
+<<<<<<< HEAD
+=======
+using petLifeApp.Services;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 namespace petLifeApp.Controllers
 {
@@ -12,11 +16,33 @@ namespace petLifeApp.Controllers
     {
         private readonly Supabase.Client _supabase;
         private readonly IConfiguration _config;
+<<<<<<< HEAD
 
         public AuthController(Supabase.Client supabase, IConfiguration config)
         {
             _supabase = supabase;
             _config = config;
+=======
+        private readonly IWebHostEnvironment _env;
+        private readonly VetCredentialPersistence _credentialPersistence;
+        private readonly SupabaseVetProfileStore _vetProfileStore;
+        private readonly ILogger<AuthController> _logger;
+
+        public AuthController(
+            Supabase.Client supabase,
+            IConfiguration config,
+            IWebHostEnvironment env,
+            VetCredentialPersistence credentialPersistence,
+            SupabaseVetProfileStore vetProfileStore,
+            ILogger<AuthController> logger)
+        {
+            _supabase = supabase;
+            _config = config;
+            _env = env;
+            _credentialPersistence = credentialPersistence;
+            _vetProfileStore = vetProfileStore;
+            _logger = logger;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         private static byte[]? DecodeBase64(string? value)
@@ -57,18 +83,54 @@ namespace petLifeApp.Controllers
             return _supabase;
         }
 
+<<<<<<< HEAD
         private async Task<VeterinarianProfileRecord?> GetVeterinarianProfileAsync(long? userId)
+=======
+        private async Task<VeterinarianRestRow?> GetVeterinarianProfileAsync(long? userId)
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         {
             if (!userId.HasValue || userId.Value <= 0)
             {
                 return null;
             }
 
+<<<<<<< HEAD
             var adminClient = GetAdminClient();
             return await adminClient
                 .From<VeterinarianProfileRecord>()
                 .Where(x => x.UserId == userId.Value)
                 .Single();
+=======
+            return await _vetProfileStore.GetByUserIdAsync(userId.Value);
+        }
+
+        private static string? ResolvePhotoExtension(string? fileName, string? contentType)
+        {
+            var ext = Path.GetExtension(fileName ?? "");
+            if (!string.IsNullOrWhiteSpace(ext))
+            {
+                return ext;
+            }
+
+            return contentType?.ToLowerInvariant() switch
+            {
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                "image/gif" => ".gif",
+                _ => ".jpg"
+            };
+        }
+
+        private async Task<string?> SaveVetProfilePhotoAsync(Guid vetId, byte[] bytes, string? fileName, string? contentType)
+        {
+            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "vets");
+            Directory.CreateDirectory(uploadsDir);
+            var ext = ResolvePhotoExtension(fileName, contentType);
+            var diskName = $"{vetId}{ext}";
+            var filePath = Path.Combine(uploadsDir, diskName);
+            await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+            return $"/uploads/vets/{diskName}";
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         [HttpPost("register")]
@@ -203,6 +265,7 @@ namespace petLifeApp.Controllers
                     try
                     {
                         var credentialBytes = DecodeBase64(request.CredentialFileBase64);
+<<<<<<< HEAD
                         Guid vetId;
                         var existingVet = await adminClient
                             .From<VeterinarianProfileRecord>()
@@ -214,10 +277,25 @@ namespace petLifeApp.Controllers
                             var vetInsert = new VeterinarianRegistrationRecord
                             {
                                 Id = Guid.NewGuid(),
+=======
+                        var profilePhotoBytes = DecodeBase64(request.ProfilePhotoBase64);
+
+                        _logger.LogInformation(
+                            "Vet registration for user {UserId}: years={Years}, license={License}",
+                            dbUser.UserId,
+                            request.YearsOfExperience,
+                            request.LicenseNumber);
+
+                        string? avatarUrl = null;
+                        var vetId = await _vetProfileStore.UpsertVeterinarianRegistrationAsync(
+                            new VeterinarianRegistrationData
+                            {
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                                 UserId = dbUser.UserId,
                                 LicenseNumber = request.LicenseNumber,
                                 Specialization = request.Specialization,
                                 ClinicName = request.ClinicName,
+<<<<<<< HEAD
                                 IsVerified = false,
                                 University = request.University,
                                 YearsOfExperience = request.YearsOfExperience,
@@ -301,6 +379,54 @@ namespace petLifeApp.Controllers
                             {
                                 // The registration record already carries the uploaded document.
                                 // Do not fail the whole signup if this follow-up sync throws.
+=======
+                                University = request.University,
+                                YearsOfExperience = request.YearsOfExperience,
+                                Bio = request.Bio,
+                                ConsultationFee = request.ConsultationFee,
+                                AvailableHours = request.AvailableHours,
+                                ClinicAddress = request.ClinicAddress,
+                                IsVerified = false
+                            });
+
+                        if (profilePhotoBytes != null && profilePhotoBytes.Length > 0)
+                        {
+                            avatarUrl = await SaveVetProfilePhotoAsync(
+                                vetId,
+                                profilePhotoBytes,
+                                request.ProfilePhotoFileName,
+                                request.ProfilePhotoContentType);
+                            await _vetProfileStore.PatchVeterinarianAsync(vetId, new VetProfilePatch
+                            {
+                                AvatarUrl = avatarUrl
+                            });
+                        }
+
+                        if (request.YearsOfExperience is int requestedYears)
+                        {
+                            await _vetProfileStore.EnsureYearsOfExperienceSavedAsync(vetId, requestedYears);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(request.Phone))
+                        {
+                            await _vetProfileStore.PatchUserPhoneAsync(dbUser.UserId, request.Phone);
+                        }
+
+                        if (credentialBytes != null && credentialBytes.Length > 0 &&
+                            !string.IsNullOrWhiteSpace(request.CredentialFileName))
+                        {
+                            try
+                            {
+                                await _credentialPersistence.SaveAsync(
+                                    vetId,
+                                    credentialBytes,
+                                    request.CredentialFileName,
+                                    request.CredentialContentType);
+                            }
+                            catch (Exception credEx)
+                            {
+                                _logger.LogWarning(credEx, "Credential save failed for vet {VetId}", vetId);
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                             }
                         }
                     }
@@ -308,8 +434,13 @@ namespace petLifeApp.Controllers
                     {
                         return BadRequest(new
                         {
+<<<<<<< HEAD
                             message = "User created in auth but Veterinarians insert failed. Check RLS and service role key.",
                             stage = "veterinarians_insert",
+=======
+                            message = "User created in auth but Veterinarians save failed. Check migrations.sql and service role key.",
+                            stage = "veterinarians_upsert",
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                             details = vetEx.Message
                         });
                     }
@@ -364,7 +495,11 @@ namespace petLifeApp.Controllers
                         message = "User record not found. Check RLS policies or ensure the Users.AuthId matches auth.users id."
                     });
 
+<<<<<<< HEAD
                 VeterinarianProfileRecord? vetProfile = null;
+=======
+                VeterinarianRestRow? vetProfile = null;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 if (string.Equals(dbUser.Role, "veterinarian", StringComparison.OrdinalIgnoreCase))
                 {
                     vetProfile = await GetVeterinarianProfileAsync(dbUser.UserId);
@@ -459,6 +594,7 @@ namespace petLifeApp.Controllers
             }
         }
     }
+<<<<<<< HEAD
 
     public record AuthRegisterRequest(
         string Email,
@@ -480,4 +616,6 @@ namespace petLifeApp.Controllers
     );
 
     public record AuthLoginRequest(string Email, string Password);
+=======
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 }

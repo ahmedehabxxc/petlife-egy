@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ChatWindow from "@/components/ChatWindow";
+<<<<<<< HEAD
 import RequestConsultationDialog from "@/components/RequestConsultationDialog";
 import VetAvailabilityCalendar from "@/components/VetAvailabilityCalendar";
+=======
+import RequestConsultationDialog from "@/Features/PetOwner/Components/RequestConsultationDialog";
+import VetAvailabilityCalendar from "@/Features/Veterinarian/Components/VetAvailabilityCalendar";
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,12 +21,25 @@ import type { Veterinarian } from "@/types";
 import type { ChatMessage } from "@/hooks/useSignalR";
 import api from "@/services/api";
 import { toast } from "sonner";
+<<<<<<< HEAD
 
 const reviews = [
   { id: "1", author: "Mariam K.", avatar: "M", rating: 5, text: "Dr. Ahmed is amazing with my cat. Very gentle and thorough.", date: "Dec 20, 2024" },
   { id: "2", author: "Youssef S.", avatar: "Y", rating: 4, text: "Great vet, but the clinic can get crowded on weekends.", date: "Nov 15, 2024" },
   { id: "3", author: "Nadia R.", avatar: "N", rating: 5, text: "Diagnosed my dog's issue quickly. Highly recommended!", date: "Oct 8, 2024" },
 ];
+=======
+import { Textarea } from "@/components/ui/textarea";
+
+interface VetReview {
+  id: string;
+  author: string;
+  avatar: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 const VetProfile = () => {
   const { id } = useParams();
@@ -33,6 +51,14 @@ const VetProfile = () => {
   const [showChat, setShowChat] = useState(false);
   const [consultations, setConsultations] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+<<<<<<< HEAD
+=======
+  const [reviews, setReviews] = useState<VetReview[]>([]);
+  const [availableHours, setAvailableHours] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
   useEffect(() => {
     const loadVet = async () => {
@@ -53,12 +79,20 @@ const VetProfile = () => {
           rating: Number(data.rating ?? data.Rating ?? 0),
           reviewCount: Number(data.reviewCount ?? data.ReviewCount ?? 0),
           isVerified: Boolean(data.isVerified ?? data.IsVerified ?? false),
+<<<<<<< HEAD
           isOnline: Boolean(data.isOnline ?? data.IsOnline ?? false),
           consultationFee: Number(data.consultationFee ?? data.ConsultationFee ?? 150),
+=======
+          consultationFee: Number(data.consultationFee ?? data.ConsultationFee ?? 0),
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
           lat: data.lat ?? data.Lat ?? undefined,
           lng: data.lng ?? data.Lng ?? undefined,
         };
         setVet(mapped);
+<<<<<<< HEAD
+=======
+        setAvailableHours(data.availableHours ?? data.AvailableHours ?? "");
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       } catch (error: any) {
         const message = error.response?.data?.message || "Failed to load vet";
         toast.error(message);
@@ -71,6 +105,74 @@ const VetProfile = () => {
   }, [id]);
 
   useEffect(() => {
+<<<<<<< HEAD
+=======
+    const loadReviews = async () => {
+      if (!id) return;
+      try {
+        const response = await api.get(`/Veterinarians/${id}/reviews`);
+        const rows = Array.isArray(response.data) ? response.data : [];
+        const mapped: VetReview[] = rows.map((r: any) => {
+          const created = r.createdAt ?? r.CreatedAt;
+          const date = created ? new Date(created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+          const author = r.authorName ?? r.AuthorName ?? "Patient";
+          return {
+            id: String(r.id ?? r.Id ?? ""),
+            author,
+            avatar: author.charAt(0).toUpperCase(),
+            rating: Number(r.rating ?? r.Rating ?? 0),
+            text: r.comment ?? r.Comment ?? "",
+            date,
+          };
+        });
+        setReviews(mapped);
+      } catch {
+        setReviews([]);
+      }
+    };
+    void loadReviews();
+  }, [id]);
+
+  const handleSubmitReview = async () => {
+    if (!id || !resolvedUserId) {
+      toast.error("Sign in as a pet owner to leave a review");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await api.post(`/Veterinarians/${id}/reviews`, {
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      toast.success("Review submitted");
+      setReviewComment("");
+      const response = await api.get(`/Veterinarians/${id}/reviews`);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped: VetReview[] = rows.map((r: any) => {
+        const created = r.createdAt ?? r.CreatedAt;
+        const date = created ? new Date(created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+        const author = r.authorName ?? r.AuthorName ?? "Patient";
+        return {
+          id: String(r.id ?? r.Id ?? ""),
+          author,
+          avatar: author.charAt(0).toUpperCase(),
+          rating: Number(r.rating ?? r.Rating ?? 0),
+          text: r.comment ?? r.Comment ?? "",
+          date,
+        };
+      });
+      setReviews(mapped);
+      const avg = mapped.length ? mapped.reduce((s, r) => s + r.rating, 0) / mapped.length : 0;
+      setVet((prev) => prev ? { ...prev, rating: avg, reviewCount: mapped.length } : prev);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to submit review");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  useEffect(() => {
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     const loadConsultations = async () => {
       if (!resolvedUserId) return;
       try {
@@ -166,7 +268,11 @@ const VetProfile = () => {
   }
 
   if (loading || !vet) {
+<<<<<<< HEAD
     return <div className="text-center py-12 text-muted-foreground">Loading vet…</div>;
+=======
+    return <div className="text-center py-12 text-muted-foreground">Loading Veterinarian…</div>;
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
   }
 
   const avgRating = vet.rating;
@@ -217,9 +323,12 @@ const VetProfile = () => {
                       <ShieldCheck className="h-3 w-3" /> Verified
                     </Badge>
                   )}
+<<<<<<< HEAD
                   <Badge variant="outline" className={vet.isOnline ? "bg-success/10 text-success border-success/20" : "bg-muted text-muted-foreground"}>
                     {vet.isOnline ? "Online now" : "Offline"}
                   </Badge>
+=======
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm">
@@ -281,7 +390,11 @@ const VetProfile = () => {
             {[
               { icon: Building2, label: "Clinic Name", value: vet.clinicName },
               { icon: MapPin, label: "Address", value: vet.clinicAddress },
+<<<<<<< HEAD
               { icon: Clock, label: "Working Hours", value: "Sat–Thu: 9:00 AM – 8:00 PM" },
+=======
+              { icon: Clock, label: "Working Hours", value: availableHours || "Not set" },
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
               { icon: CreditCard, label: "Consultation Fee", value: `${vet.consultationFee} EGP`, highlight: true },
             ].map((item) => (
               <div key={item.label} className="flex items-start gap-3">
@@ -340,7 +453,41 @@ const VetProfile = () => {
             </div>
           </div>
 
+<<<<<<< HEAD
           <div className="space-y-1">
+=======
+          {user?.role === "pet_owner" && (
+            <div className="mb-6 p-4 rounded-lg border border-border/60 bg-muted/30 space-y-3">
+              <p className="text-sm font-medium">Write a review</p>
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setReviewRating(i + 1)}
+                    className="p-0.5"
+                  >
+                    <Star className={`h-5 w-5 ${i < reviewRating ? "text-accent fill-accent" : "text-muted"}`} />
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                placeholder="Share your experience…"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                rows={3}
+              />
+              <Button size="sm" disabled={submittingReview || !reviewComment.trim()} onClick={() => void handleSubmitReview()}>
+                {submittingReview ? "Submitting…" : "Submit Review"}
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            {reviews.length === 0 && (
+              <p className="text-sm text-muted-foreground py-4 text-center">No reviews yet. Be the first to review!</p>
+            )}
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             {reviews.map((review, i) => (
               <div key={review.id}>
                 {i > 0 && <Separator className="my-4" />}

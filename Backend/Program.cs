@@ -11,7 +11,17 @@ namespace petLifeApp
             var builder = WebApplication.CreateBuilder(args);
 
             // --- 1. REGISTER SERVICES ---
+<<<<<<< HEAD
             builder.Services.AddControllers();
+=======
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNamingPolicy =
+                        System.Text.Json.JsonNamingPolicy.CamelCase;
+                    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                });
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -44,9 +54,25 @@ namespace petLifeApp
                         .AllowAnyHeader());
             });
 
+<<<<<<< HEAD
             // --- 2. BUILD THE APP ---
             var app = builder.Build();
 
+=======
+            builder.Services.AddScoped<IGeminiService, GeminiService>();
+            builder.Services.AddSingleton<VetCredentialFileService>();
+            builder.Services.AddSingleton<SupabaseCredentialStore>();
+            builder.Services.AddSingleton<VetCredentialPersistence>();
+            builder.Services.AddSingleton<VetAuthMetadataService>();
+            builder.Services.AddSingleton<SupabaseVetProfileStore>();
+            // --- 2. BUILD THE APP ---
+            var app = builder.Build();
+
+            var uploadsRoot = Path.Combine(app.Environment.WebRootPath, "uploads");
+            Directory.CreateDirectory(Path.Combine(uploadsRoot, "vets"));
+            Directory.CreateDirectory(Path.Combine(uploadsRoot, "vet-credentials"));
+
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             // --- 3. CONFIGURE MIDDLEWARE ---
             
             // Serve built frontend (wwwroot). In dev you'll usually run Vite separately.

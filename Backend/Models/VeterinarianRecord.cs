@@ -18,6 +18,12 @@ namespace petLifeApp.Models
         [Column("ClinicName")]
         public string? ClinicName { get; set; }
 
+<<<<<<< HEAD
+=======
+        [Column("ClinicAddress")]
+        public string? ClinicAddress { get; set; }
+
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         [Column("LicenseNumber")]
         public string? LicenseNumber { get; set; }
 
@@ -30,6 +36,15 @@ namespace petLifeApp.Models
         [Column("Bio")]
         public string? Bio { get; set; }
 
+<<<<<<< HEAD
+=======
+        [Column("ConsultationFee")]
+        public decimal? ConsultationFee { get; set; }
+
+        [Column("AvatarUrl")]
+        public string? AvatarUrl { get; set; }
+
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         [Column("CredentialsFile")]
         public byte[]? CredentialsFile { get; set; }
 
@@ -42,8 +57,13 @@ namespace petLifeApp.Models
         [Column("IsVerified")]
         public bool? IsVerified { get; set; }
 
+<<<<<<< HEAD
         [Column("IsOnline")]
         public bool? IsOnline { get; set; }
+=======
+        [Column("ClinicLocationUrl")]
+        public string? ClinicLocationUrl { get; set; }
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
         [Column("CreatedAt")]
         public DateTime? CreatedAt { get; set; }

@@ -23,5 +23,17 @@ namespace petLifeApp.Models
 
         [Column("IsVerified")]
         public bool? IsVerified { get; set; }
+<<<<<<< HEAD
+=======
+
+        [Column("University")]
+        public string? University { get; set; }
+
+        [Column("YearsOfExperience")]
+        public int? YearsOfExperience { get; set; }
+
+        [Column("Bio")]
+        public string? Bio { get; set; }
+>>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     }
 }
