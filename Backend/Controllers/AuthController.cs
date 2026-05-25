@@ -3,10 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Supabase;
 using System.IdentityModel.Tokens.Jwt;
 using petLifeApp.Models;
-<<<<<<< HEAD
-=======
 using petLifeApp.Services;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 namespace petLifeApp.Controllers
 {
@@ -16,13 +13,6 @@ namespace petLifeApp.Controllers
     {
         private readonly Supabase.Client _supabase;
         private readonly IConfiguration _config;
-<<<<<<< HEAD
-
-        public AuthController(Supabase.Client supabase, IConfiguration config)
-        {
-            _supabase = supabase;
-            _config = config;
-=======
         private readonly IWebHostEnvironment _env;
         private readonly VetCredentialPersistence _credentialPersistence;
         private readonly SupabaseVetProfileStore _vetProfileStore;
@@ -42,7 +32,6 @@ namespace petLifeApp.Controllers
             _credentialPersistence = credentialPersistence;
             _vetProfileStore = vetProfileStore;
             _logger = logger;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         private static byte[]? DecodeBase64(string? value)
@@ -83,24 +72,13 @@ namespace petLifeApp.Controllers
             return _supabase;
         }
 
-<<<<<<< HEAD
-        private async Task<VeterinarianProfileRecord?> GetVeterinarianProfileAsync(long? userId)
-=======
         private async Task<VeterinarianRestRow?> GetVeterinarianProfileAsync(long? userId)
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         {
             if (!userId.HasValue || userId.Value <= 0)
             {
                 return null;
             }
 
-<<<<<<< HEAD
-            var adminClient = GetAdminClient();
-            return await adminClient
-                .From<VeterinarianProfileRecord>()
-                .Where(x => x.UserId == userId.Value)
-                .Single();
-=======
             return await _vetProfileStore.GetByUserIdAsync(userId.Value);
         }
 
@@ -130,7 +108,6 @@ namespace petLifeApp.Controllers
             var filePath = Path.Combine(uploadsDir, diskName);
             await System.IO.File.WriteAllBytesAsync(filePath, bytes);
             return $"/uploads/vets/{diskName}";
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         [HttpPost("register")]
@@ -265,19 +242,6 @@ namespace petLifeApp.Controllers
                     try
                     {
                         var credentialBytes = DecodeBase64(request.CredentialFileBase64);
-<<<<<<< HEAD
-                        Guid vetId;
-                        var existingVet = await adminClient
-                            .From<VeterinarianProfileRecord>()
-                            .Where(x => x.UserId == dbUser.UserId)
-                            .Get();
-
-                        if (existingVet.Models.Count == 0)
-                        {
-                            var vetInsert = new VeterinarianRegistrationRecord
-                            {
-                                Id = Guid.NewGuid(),
-=======
                         var profilePhotoBytes = DecodeBase64(request.ProfilePhotoBase64);
 
                         _logger.LogInformation(
@@ -290,96 +254,10 @@ namespace petLifeApp.Controllers
                         var vetId = await _vetProfileStore.UpsertVeterinarianRegistrationAsync(
                             new VeterinarianRegistrationData
                             {
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                                 UserId = dbUser.UserId,
                                 LicenseNumber = request.LicenseNumber,
                                 Specialization = request.Specialization,
                                 ClinicName = request.ClinicName,
-<<<<<<< HEAD
-                                IsVerified = false,
-                                University = request.University,
-                                YearsOfExperience = request.YearsOfExperience,
-                                Bio = request.Bio,
-                                CredentialsFileName = request.CredentialFileName,
-                                CredentialsContentType = request.CredentialContentType,
-                                UpdatedAt = DateTime.UtcNow
-                            };
-
-                            await adminClient.From<VeterinarianRegistrationRecord>().Insert(
-                                vetInsert,
-                                new Supabase.Postgrest.QueryOptions
-                                {
-                                    Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                                });
-                            vetId = vetInsert.Id;
-                        }
-                        else
-                        {
-                            vetId = existingVet.Models[0].Id;
-                            var vetBaseUpdate = new VeterinarianRegistrationRecord
-                            {
-                                Id = vetId,
-                                UserId = dbUser.UserId,
-                                LicenseNumber = request.LicenseNumber,
-                                Specialization = request.Specialization,
-                                ClinicName = request.ClinicName,
-                                IsVerified = existingVet.Models[0].IsVerified,
-                                University = request.University,
-                                YearsOfExperience = request.YearsOfExperience,
-                                Bio = request.Bio,
-                                CredentialsFileName = request.CredentialFileName ?? existingVet.Models[0].CredentialsFileName,
-                                CredentialsContentType = request.CredentialContentType ?? existingVet.Models[0].CredentialsContentType,
-                                UpdatedAt = DateTime.UtcNow
-                            };
-
-                            await adminClient.From<VeterinarianRegistrationRecord>().Update(
-                                vetBaseUpdate,
-                                new Supabase.Postgrest.QueryOptions
-                                {
-                                    Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                                });
-                        }
-
-                        var extrasUpdate = new VeterinarianExtrasUpdate
-                        {
-                            Id = vetId,
-                            University = request.University,
-                            YearsOfExperience = request.YearsOfExperience,
-                            Bio = request.Bio,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-
-                        await adminClient.From<VeterinarianExtrasUpdate>().Update(
-                            extrasUpdate,
-                            new Supabase.Postgrest.QueryOptions
-                            {
-                                Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                            });
-
-                        if (credentialBytes != null && !string.IsNullOrWhiteSpace(request.CredentialFileName))
-                        {
-                            var credentialUpdate = new VeterinarianCredentialsUpdate
-                            {
-                                Id = vetId,
-                                CredentialsFile = credentialBytes,
-                                CredentialsFileName = request.CredentialFileName,
-                                CredentialsContentType = request.CredentialContentType
-                            };
-
-                            try
-                            {
-                                await adminClient.From<VeterinarianCredentialsUpdate>().Update(
-                                    credentialUpdate,
-                                    new Supabase.Postgrest.QueryOptions
-                                    {
-                                        Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                                    });
-                            }
-                            catch
-                            {
-                                // The registration record already carries the uploaded document.
-                                // Do not fail the whole signup if this follow-up sync throws.
-=======
                                 University = request.University,
                                 YearsOfExperience = request.YearsOfExperience,
                                 Bio = request.Bio,
@@ -426,7 +304,6 @@ namespace petLifeApp.Controllers
                             catch (Exception credEx)
                             {
                                 _logger.LogWarning(credEx, "Credential save failed for vet {VetId}", vetId);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                             }
                         }
                     }
@@ -434,13 +311,8 @@ namespace petLifeApp.Controllers
                     {
                         return BadRequest(new
                         {
-<<<<<<< HEAD
-                            message = "User created in auth but Veterinarians insert failed. Check RLS and service role key.",
-                            stage = "veterinarians_insert",
-=======
                             message = "User created in auth but Veterinarians save failed. Check migrations.sql and service role key.",
                             stage = "veterinarians_upsert",
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                             details = vetEx.Message
                         });
                     }
@@ -495,11 +367,7 @@ namespace petLifeApp.Controllers
                         message = "User record not found. Check RLS policies or ensure the Users.AuthId matches auth.users id."
                     });
 
-<<<<<<< HEAD
-                VeterinarianProfileRecord? vetProfile = null;
-=======
                 VeterinarianRestRow? vetProfile = null;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 if (string.Equals(dbUser.Role, "veterinarian", StringComparison.OrdinalIgnoreCase))
                 {
                     vetProfile = await GetVeterinarianProfileAsync(dbUser.UserId);
@@ -594,28 +462,4 @@ namespace petLifeApp.Controllers
             }
         }
     }
-<<<<<<< HEAD
-
-    public record AuthRegisterRequest(
-        string Email,
-        string Password,
-        string FirstName,
-        string? LastName,
-        string? Phone,
-        string? Role,
-        string? LicenseNumber,
-        string? Specialization,
-        string? ClinicName,
-        string? University,
-        int? YearsOfExperience,
-        string? Bio,
-        decimal? ConsultationFee,
-        string? CredentialFileBase64,
-        string? CredentialFileName,
-        string? CredentialContentType
-    );
-
-    public record AuthLoginRequest(string Email, string Password);
-=======
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 }

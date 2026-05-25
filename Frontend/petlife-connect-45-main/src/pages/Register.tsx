@@ -56,12 +56,9 @@ const Register = () => {
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [university, setUniversity] = useState("");
   const [bio, setBio] = useState("");
-<<<<<<< HEAD
-=======
   const [phone, setPhone] = useState("");
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
   const [documents, setDocuments] = useState<string[]>([]);
   const [credentialFiles, setCredentialFiles] = useState<File[]>([]);
 
@@ -92,26 +89,15 @@ const Register = () => {
         const credentialFileBase64 = primaryCredential
           ? await fileToBase64(primaryCredential)
           : null;
-<<<<<<< HEAD
-=======
         const profilePhotoBase64 = profilePhoto
           ? await fileToBase64(profilePhoto)
           : null;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
         const response = await api.post("/Auth/register", {
           email,
           password,
           firstName: name,
           role,
-<<<<<<< HEAD
-          licenseNumber,
-          specialization: specialty,
-          clinicName,
-          university,
-          yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
-          bio,
-=======
           phone: phone || undefined,
           licenseNumber,
           specialization: specialty,
@@ -122,7 +108,6 @@ const Register = () => {
           profilePhotoBase64,
           profilePhotoFileName: profilePhoto?.name ?? null,
           profilePhotoContentType: profilePhoto?.type ?? null,
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
           credentialFileBase64,
           credentialFileName: primaryCredential?.name ?? null,
           credentialContentType: primaryCredential?.type ?? null,
@@ -183,62 +168,14 @@ const Register = () => {
         }
       }
     } catch (error: any) {
-<<<<<<< HEAD
-      const message = error.response?.data?.message || "Registration failed";
-      toast.error(message);
-=======
       const details = error.response?.data?.details;
       const message = error.response?.data?.message || "Registration failed";
       toast.error(details ? `${message}: ${details}` : message);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     } finally {
       setLoading(false);
     }
   };
 
-<<<<<<< HEAD
-  // Show pending approval screen for vet after submission
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center space-y-4">
-            <div className="mx-auto h-16 w-16 rounded-full bg-warning/10 flex items-center justify-center">
-              <Clock className="h-8 w-8 text-warning" />
-            </div>
-            <h2 className="font-heading text-xl font-bold">Registration Under Review</h2>
-            <p className="text-sm text-muted-foreground">
-              Thank you, <span className="font-medium text-foreground">{name}</span>! Your veterinarian registration has been submitted successfully.
-            </p>
-            <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 text-left space-y-2">
-              <p className="text-sm font-medium text-warning">What happens next?</p>
-              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Our admin team will review your credentials</li>
-                <li>You'll receive a notification once approved</li>
-                <li>After approval, you can log in and start consultations</li>
-              </ul>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-3 text-left">
-              <p className="text-xs text-muted-foreground mb-1">Submitted credentials:</p>
-              <p className="text-xs"><span className="font-medium">License:</span> {licenseNumber}</p>
-              <p className="text-xs"><span className="font-medium">Specialty:</span> {specialty}</p>
-              <p className="text-xs"><span className="font-medium">Clinic:</span> {clinicName}</p>
-              {university && <p className="text-xs"><span className="font-medium">University:</span> {university}</p>}
-              {bio && <p className="text-xs"><span className="font-medium">Bio:</span> {bio}</p>}
-              <div className="flex gap-1 mt-1 flex-wrap">
-                {documents.map((doc) => (
-                  <span key={doc} className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-background px-2 py-0.5 rounded border">
-                    <FileText className="h-3 w-3" /> {doc}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
-              Back to Login
-            </Button>
-          </CardContent>
-        </Card>
-=======
   // Reusable left panel
   const leftPanel = (
     <div
@@ -351,168 +288,11 @@ const Register = () => {
             </Card>
           </div>
         </div>
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       </div>
     );
   }
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <PawPrint className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="font-heading text-2xl">Create Account</CardTitle>
-          <CardDescription>Join PetLife Egypt today</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-            </div>
-
-            <div className="space-y-3">
-              <Label>I am a…</Label>
-                <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                  {roles.map((r) => (
-                    <Label
-                      key={r.value}
-                      htmlFor={`role-${r.value}`}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${role === r.value ? "border-primary bg-primary/5" : "border-border"
-                        }`}
-                    >
-                      <RadioGroupItem value={r.value} id={`role-${r.value}`} />
-                      <div>
-                        <span className="cursor-pointer font-medium">{r.label}</span>
-                        <p className="text-xs text-muted-foreground">{r.desc}</p>
-                      </div>
-                    </Label>
-                  ))}
-                </RadioGroup>
-            </div>
-
-            {/* Vet credential fields */}
-            {isVet && (
-              <>
-                <Separator />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <Label className="font-heading font-bold text-sm">Veterinarian Credentials</Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Your account will be reviewed by our admin team before activation.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="license">License Number *</Label>
-                  <Input id="license" placeholder="e.g. VET-EG-2024-1234" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} required={isVet} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="specialty">Specialty *</Label>
-                  <Select value={specialty} onValueChange={setSpecialty}>
-                    <SelectTrigger><SelectValue placeholder="Select specialty…" /></SelectTrigger>
-                    <SelectContent>
-                      {specialties.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="clinic">Clinic Name *</Label>
-                  <Input id="clinic" placeholder="Your clinic name" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required={isVet} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="experience">Years of Experience *</Label>
-                  <Input id="experience" type="number" min="0" max="50" placeholder="e.g. 5" value={yearsOfExperience} onChange={(e) => setYearsOfExperience(e.target.value)} required={isVet} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="university">University</Label>
-                  <Input id="university" placeholder="e.g. Cairo University" value={university} onChange={(e) => setUniversity(e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Professional Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell the admin about your experience and area of care"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Credentials Documents *</Label>
-                  <div
-                    className="relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                  >
-                    {documents.length > 0 ? (
-                      <div className="space-y-2">
-                        {documents.map((doc) => (
-                          <span key={doc} className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded mr-1">
-                            <FileText className="h-3 w-3" /> {doc}
-                          </span>
-                        ))}
-                        <p className="text-xs text-muted-foreground mt-1">Click to change</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <Upload className="h-6 w-6 text-muted-foreground mx-auto" />
-                        <p className="text-xs text-muted-foreground">Upload license, degree, or certificates</p>
-                        <p className="text-[10px] text-muted-foreground">PDF, JPG, PNG (max 10MB each)</p>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        setCredentialFiles(files);
-                        setDocuments(files.map((f) => f.name));
-                      }}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating…" : isVet ? "Submit for Review" : "Create Account"}
-            </Button>
-
-            {isVet && (
-              <p className="text-xs text-center text-muted-foreground">
-                Your account will be on hold until admin approval.
-              </p>
-            )}
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign In</Link>
-          </p>
-        </CardContent>
-      </Card>
-=======
     <div className="min-h-screen flex flex-col lg:flex-row">
       {leftPanel}
 
@@ -708,7 +488,6 @@ const Register = () => {
           </Card>
         </div>
       </div>
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     </div>
   );
 };

@@ -7,22 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-<<<<<<< HEAD
-import { PawPrint } from "lucide-react";
-import { toast } from "sonner";
-=======
 import { toast } from "sonner";
 import VetPendingApproval from "@/pages/VetPendingApproval";
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-<<<<<<< HEAD
-=======
   const [pendingApproval, setPendingApproval] = useState(false);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -31,10 +23,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-<<<<<<< HEAD
-      // Call real backend API
-=======
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       const response = await api.post("/Auth/login", { email, password });
       const data = response.data;
 
@@ -59,14 +47,11 @@ const Login = () => {
       toast.success("Welcome back!");
       navigate("/");
     } catch (error: any) {
-<<<<<<< HEAD
-=======
       const status = error.response?.data?.status;
       if (error.response?.status === 403 && status === "pending_approval") {
         setPendingApproval(true);
         return;
       }
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
       const message = error.response?.data?.message || "Invalid credentials";
       toast.error(message);
     } finally {
@@ -74,54 +59,6 @@ const Login = () => {
     }
   };
 
-<<<<<<< HEAD
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <PawPrint className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your PetLife Egypt account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign In"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary font-medium hover:underline">
-              Sign Up
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-=======
   if (pendingApproval) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -245,13 +182,8 @@ const Login = () => {
           50% { transform: translateY(-18px); }
         }
       `}</style>
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     </div>
   );
 };
 
-<<<<<<< HEAD
 export default Login;
-=======
-export default Login;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf

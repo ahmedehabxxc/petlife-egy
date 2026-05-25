@@ -1,17 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using petLifeApp.Models;
-<<<<<<< HEAD
-using Supabase;
-using System.IdentityModel.Tokens.Jwt;
-using System.Globalization;
-using System.Text;
-=======
 using petLifeApp.Services;
 using Supabase;
 using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
 namespace petLifeApp.Controllers
 {
@@ -21,13 +14,6 @@ namespace petLifeApp.Controllers
     {
         private readonly Supabase.Client _supabase;
         private readonly IConfiguration _config;
-<<<<<<< HEAD
-
-        public AdminController(Supabase.Client supabase, IConfiguration config)
-        {
-            _supabase = supabase;
-            _config = config;
-=======
         private readonly VetCredentialFileService _credentialFiles;
         private readonly SupabaseCredentialStore _credentialStore;
         private readonly VetAuthMetadataService _authMetadata;
@@ -47,7 +33,6 @@ namespace petLifeApp.Controllers
             _credentialStore = credentialStore;
             _authMetadata = authMetadata;
             _vetProfileStore = vetProfileStore;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         private Supabase.Client GetAdminClient()
@@ -185,11 +170,7 @@ namespace petLifeApp.Controllers
                 var payload = users.Models.Select(u => new AdminUserDto(
                     u.UserId,
                     u.UserName ?? u.Email ?? "User",
-<<<<<<< HEAD
-                    u.Email,
-=======
                     u.Email ?? string.Empty,
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                     string.IsNullOrWhiteSpace(u.Role) ? "pet_owner" : u.Role!,
                     (u.IsActive ?? true) ? "active" : "suspended",
                     u.CreatedAt
@@ -236,30 +217,17 @@ namespace petLifeApp.Controllers
             try
             {
                 var adminClient = GetAdminClient();
-<<<<<<< HEAD
-                var vets = await adminClient.From<VeterinarianProfileRecord>().Get();
-                var users = await adminClient.From<User>().Get();
-                var userMap = users.Models.ToDictionary(u => u.UserId, u => u);
-
-                var payload = vets.Models.Select(v =>
-=======
                 var vets = await _vetProfileStore.ListVeterinariansViaRestAsync();
                 var users = await adminClient.From<User>().Get();
                 var userMap = users.Models.ToDictionary(u => u.UserId, u => u);
 
                 var payload = new List<VetVerificationDto>();
                 foreach (var v in vets)
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 {
                     userMap.TryGetValue(v.UserId, out var user);
                     var status = v.IsVerified == true ? "approved" : "pending";
                     var docs = string.IsNullOrWhiteSpace(v.CredentialsFileName)
                         ? Array.Empty<string>()
-<<<<<<< HEAD
-                        : new[] { v.CredentialsFileName };
-
-                    return new VetVerificationDto(
-=======
                         : new[] { v.CredentialsFileName! };
 
                     var years = v.YearsOfExperience ?? 0;
@@ -305,23 +273,10 @@ namespace petLifeApp.Controllers
                     }
 
                     payload.Add(new VetVerificationDto(
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                         v.Id,
                         v.UserId,
                         user?.UserName ?? user?.Email ?? "Veterinarian",
                         user?.Email ?? "",
-<<<<<<< HEAD
-                        v.LicenseNumber ?? "",
-                        v.Specialization ?? "",
-                        v.ClinicName ?? "",
-                        v.YearsOfExperience ?? 0,
-                        docs,
-                        status,
-                        v.CreatedAt,
-                        v.UpdatedAt
-                    );
-                });
-=======
                         license,
                         specialty,
                         clinic,
@@ -334,7 +289,6 @@ namespace petLifeApp.Controllers
                         v.UpdatedAt
                     ));
                 }
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
                 return Ok(payload);
             }
@@ -344,13 +298,8 @@ namespace petLifeApp.Controllers
             }
         }
 
-<<<<<<< HEAD
-        [HttpGet("verifications/{id:guid}")]
-        public async Task<IActionResult> GetVetVerificationDetail(Guid id)
-=======
         [HttpGet("verifications/{id:guid}/credentials")]
         public async Task<IActionResult> GetVetCredentials(Guid id)
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         {
             var auth = await RequireAdminAsync();
             if (!auth.ok) return auth.error!;
@@ -358,76 +307,6 @@ namespace petLifeApp.Controllers
             try
             {
                 var adminClient = GetAdminClient();
-<<<<<<< HEAD
-                var vet = await adminClient.From<VeterinarianAdminReviewRecord>().Where(x => x.Id == id).Single();
-                if (vet == null)
-                {
-                    return NotFound(new { message = "Vet not found." });
-                }
-
-                var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
-                var status = vet.IsVerified == true ? "approved" : "pending";
-
-                return Ok(new VetVerificationDetailDto(
-                    vet.Id,
-                    vet.UserId,
-                    user?.UserName ?? user?.Email ?? "Veterinarian",
-                    user?.Email ?? "",
-                    user?.Phone,
-                    vet.LicenseNumber ?? "",
-                    vet.Specialization ?? "",
-                    vet.ClinicName ?? "",
-                    vet.University,
-                    vet.YearsOfExperience,
-                    vet.Bio,
-                    vet.CredentialsFileName,
-                    vet.CredentialsContentType,
-                    !string.IsNullOrWhiteSpace(vet.CredentialsFile),
-                    status,
-                    vet.IsOnline ?? false,
-                    vet.CreatedAt,
-                    vet.UpdatedAt
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpGet("verifications/{id:guid}/document")]
-        public async Task<IActionResult> DownloadVetVerificationDocument(Guid id)
-        {
-            var auth = await RequireAdminAsync();
-            if (!auth.ok) return auth.error!;
-
-            try
-            {
-                var adminClient = GetAdminClient();
-                var vet = await adminClient.From<VeterinarianAdminReviewRecord>().Where(x => x.Id == id).Single();
-                if (vet == null)
-                {
-                    return NotFound(new { message = "Vet not found." });
-                }
-
-                if (string.IsNullOrWhiteSpace(vet.CredentialsFile))
-                {
-                    return NotFound(new { message = "No credentials document uploaded." });
-                }
-
-                var fileBytes = DecodeDocumentBytes(vet.CredentialsFile);
-                if (fileBytes == null || fileBytes.Length == 0)
-                {
-                    return BadRequest(new { message = "The stored credentials document could not be decoded." });
-                }
-
-                var contentType = string.IsNullOrWhiteSpace(vet.CredentialsContentType)
-                    ? "application/octet-stream"
-                    : vet.CredentialsContentType;
-                var fileName = string.IsNullOrWhiteSpace(vet.CredentialsFileName)
-                    ? $"vet-credentials-{id}"
-                    : vet.CredentialsFileName;
-=======
                 var profile = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == id).Single();
                 if (profile == null)
                     return NotFound(new { message = "Vet not found." });
@@ -471,7 +350,6 @@ namespace petLifeApp.Controllers
                 {
                     Response.Headers.ContentDisposition = $"inline; filename=\"{fileName}\"";
                 }
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 
                 return File(fileBytes, contentType, fileName);
             }
@@ -493,20 +371,6 @@ namespace petLifeApp.Controllers
                 var existing = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == id).Single();
                 if (existing == null) return NotFound(new { message = "Vet not found." });
 
-<<<<<<< HEAD
-                var update = new VeterinarianVerificationUpdate
-                {
-                    Id = existing.Id,
-                    IsVerified = true,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await adminClient.From<VeterinarianVerificationUpdate>().Update(
-                    update,
-                    new Supabase.Postgrest.QueryOptions
-                    {
-                        Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                    });
-=======
                 var update = new VeterinarianInsert
                 {
                     Id = existing.Id,
@@ -517,7 +381,6 @@ namespace petLifeApp.Controllers
                     IsVerified = true
                 };
                 await adminClient.From<VeterinarianInsert>().Update(update);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 return Ok(new { id, status = "approved" });
             }
             catch (Exception ex)
@@ -538,20 +401,6 @@ namespace petLifeApp.Controllers
                 var existing = await adminClient.From<VeterinarianProfileRecord>().Where(x => x.Id == id).Single();
                 if (existing == null) return NotFound(new { message = "Vet not found." });
 
-<<<<<<< HEAD
-                var update = new VeterinarianVerificationUpdate
-                {
-                    Id = existing.Id,
-                    IsVerified = false,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await adminClient.From<VeterinarianVerificationUpdate>().Update(
-                    update,
-                    new Supabase.Postgrest.QueryOptions
-                    {
-                        Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal
-                    });
-=======
                 var update = new VeterinarianInsert
                 {
                     Id = existing.Id,
@@ -562,7 +411,6 @@ namespace petLifeApp.Controllers
                     IsVerified = false
                 };
                 await adminClient.From<VeterinarianInsert>().Update(update);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 return Ok(new { id, status = "rejected" });
             }
             catch (Exception ex)
@@ -698,55 +546,6 @@ namespace petLifeApp.Controllers
                 _ => "Pet Owners"
             };
         }
-<<<<<<< HEAD
-
-        private static byte[]? DecodeDocumentBytes(string rawValue)
-        {
-            if (string.IsNullOrWhiteSpace(rawValue))
-            {
-                return null;
-            }
-
-            var trimmed = rawValue.Trim();
-            if (trimmed.StartsWith("\\x", StringComparison.OrdinalIgnoreCase))
-            {
-                return DecodeHex(trimmed[2..]);
-            }
-
-            try
-            {
-                return Convert.FromBase64String(trimmed);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private static byte[]? DecodeHex(string hex)
-        {
-            if (string.IsNullOrWhiteSpace(hex) || hex.Length % 2 != 0)
-            {
-                return null;
-            }
-
-            try
-            {
-                var bytes = new byte[hex.Length / 2];
-                for (var i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-                }
-
-                return bytes;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-=======
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     }
 
     public record MonthlyCountDto(string Month, int Users);
@@ -774,40 +573,13 @@ namespace petLifeApp.Controllers
         string ClinicName,
         int YearsOfExperience,
         string[] Documents,
-<<<<<<< HEAD
-=======
         bool HasCredentials,
         string? CredentialFileName,
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         string Status,
         DateTime? SubmittedAt,
         DateTime? ReviewedAt
     );
 
-<<<<<<< HEAD
-    public record VetVerificationDetailDto(
-        Guid Id,
-        long UserId,
-        string Name,
-        string Email,
-        string? Phone,
-        string LicenseNumber,
-        string Specialty,
-        string ClinicName,
-        string? University,
-        int? YearsOfExperience,
-        string? Bio,
-        string? CredentialsFileName,
-        string? CredentialsContentType,
-        bool HasDocument,
-        string Status,
-        bool IsOnline,
-        DateTime? SubmittedAt,
-        DateTime? ReviewedAt
-    );
-
-=======
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     public record AdoptionListingDto(
         Guid Id,
         string PetName,

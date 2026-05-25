@@ -1,0 +1,6 @@
+{
+  "git.confirmSync": true,
+  "git.pullBeforeCheckout": false,
+  "git.autofetch": false,
+  "git.showPushSuccessNotification": true
+}

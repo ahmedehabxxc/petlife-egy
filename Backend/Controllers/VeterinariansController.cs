@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using petLifeApp.Models;
-<<<<<<< HEAD
-=======
 using petLifeApp.Services;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 using Supabase;
 using Supabase.Postgrest;
 using System.IdentityModel.Tokens.Jwt;
@@ -20,25 +17,16 @@ namespace petLifeApp.Controllers
     {
         private readonly Supabase.Client _supabase;
         private readonly IConfiguration _config;
-<<<<<<< HEAD
-=======
         private readonly IWebHostEnvironment _env;
         private readonly VetCredentialFileService _credentialFiles;
         private readonly VetCredentialPersistence _credentialPersistence;
         private readonly SupabaseCredentialStore _credentialStore;
         private readonly SupabaseVetProfileStore _vetProfileStore;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
-<<<<<<< HEAD
-        public VeterinariansController(Supabase.Client supabase, IConfiguration config)
-        {
-            _supabase = supabase;
-            _config = config;
-=======
         public VeterinariansController(
             Supabase.Client supabase,
             IConfiguration config,
@@ -55,7 +43,6 @@ namespace petLifeApp.Controllers
             _credentialPersistence = credentialPersistence;
             _credentialStore = credentialStore;
             _vetProfileStore = vetProfileStore;
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         }
 
         private Supabase.Client GetAdminClient()
@@ -236,10 +223,6 @@ namespace petLifeApp.Controllers
             }
         }
 
-<<<<<<< HEAD
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-=======
         private async Task<Dictionary<Guid, (decimal Avg, int Count)>> GetReviewStatsByVetAsync(Supabase.Client adminClient)
         {
             try
@@ -262,29 +245,17 @@ namespace petLifeApp.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? specialty)
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         {
             try
             {
                 var adminClient = GetAdminClient();
                 var vetsResult = await adminClient.From<VeterinarianProfileRecord>().Get();
-<<<<<<< HEAD
-=======
                 var reviewStats = await GetReviewStatsByVetAsync(adminClient);
 
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 var approvedVets = vetsResult.Models
                     .Where(v => v.IsVerified == true)
                     .ToList();
 
-<<<<<<< HEAD
-                var payload = new List<VeterinarianDto>();
-                foreach (var vet in approvedVets)
-                {
-                    var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
-                    var mergedVet = MergeVetProfile(vet, await GetVetMetadataFallbackAsync(user?.AuthId));
-                    payload.Add(MapVet(mergedVet, user));
-=======
                 if (!string.IsNullOrWhiteSpace(specialty) && !string.Equals(specialty, "All", StringComparison.OrdinalIgnoreCase))
                 {
                     approvedVets = approvedVets
@@ -315,7 +286,6 @@ namespace petLifeApp.Controllers
                     }
 
                     payload.Add(MapVet(mergedVet, user, stats.Avg, stats.Count));
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 }
 
                 return Ok(payload);
@@ -338,9 +308,6 @@ namespace petLifeApp.Controllers
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == vet.UserId).Single();
                 var mergedVet = MergeVetProfile(vet, await GetVetMetadataFallbackAsync(user?.AuthId));
-<<<<<<< HEAD
-                return Ok(MapVet(mergedVet, user));
-=======
                 var reviewStats = await GetReviewStatsByVetAsync(adminClient);
                 reviewStats.TryGetValue(vet.Id, out var stats);
                 return Ok(MapVet(mergedVet, user, stats.Avg, stats.Count));
@@ -420,7 +387,6 @@ namespace petLifeApp.Controllers
 
                 await adminClient.From<VetReviewInsert>().Insert(insert);
                 return Ok(new { message = "Review submitted.", id = insert.Id });
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             }
             catch (Exception ex)
             {
@@ -500,25 +466,6 @@ namespace petLifeApp.Controllers
 
                 await adminClient.From<VeterinarianInsert>().Update(coreUpdate);
 
-<<<<<<< HEAD
-                var extrasUpdate = new VeterinarianExtrasUpdate
-                {
-                    Id = existing.Id,
-                    University = request.University ?? existing.University,
-                    YearsOfExperience = request.YearsOfExperience ?? existing.YearsOfExperience,
-                    Bio = request.Bio ?? existing.Bio,
-                    IsOnline = existing.IsOnline,
-                    UpdatedAt = now
-                };
-
-                try
-                {
-                    await adminClient.From<VeterinarianExtrasUpdate>().Update(extrasUpdate);
-                }
-                catch
-                {
-                    // Ignore optional columns that may not exist yet.
-=======
                 var yearsToSave = request.YearsOfExperience ?? existing.YearsOfExperience;
                 await _vetProfileStore.PatchVeterinarianAsync(existing.Id, new VetProfilePatch
                 {
@@ -539,7 +486,6 @@ namespace petLifeApp.Controllers
                 if (!string.IsNullOrWhiteSpace(request.Phone))
                 {
                     await _vetProfileStore.PatchUserPhoneAsync(existing.UserId, request.Phone);
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 }
 
                 var user = await adminClient.From<User>().Where(x => x.UserId == existing.UserId).Single();
@@ -586,8 +532,6 @@ namespace petLifeApp.Controllers
             }
         }
 
-<<<<<<< HEAD
-=======
         [HttpPost("me/avatar")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadAvatar([FromForm] UploadCredentialsRequest request)
@@ -634,7 +578,6 @@ namespace petLifeApp.Controllers
             }
         }
 
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         [HttpPost("credentials")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadCredentials([FromForm] UploadCredentialsRequest request)
@@ -675,31 +618,6 @@ namespace petLifeApp.Controllers
                     bytes = ms.ToArray();
                 }
 
-<<<<<<< HEAD
-                var update = new VeterinarianCredentialsUpdate
-                {
-                    Id = vet.Id,
-                    CredentialsFile = bytes,
-                    CredentialsFileName = file.FileName,
-                    CredentialsContentType = file.ContentType
-                };
-
-                try
-                {
-                    var options = new QueryOptions { Returning = QueryOptions.ReturnType.Minimal };
-                    await adminClient.From<VeterinarianCredentialsUpdate>().Update(update, options);
-                }
-                catch (Exception updateEx)
-                {
-                    return BadRequest(new
-                    {
-                        message = "Failed to save credentials. Check RLS policies and column names.",
-                        details = updateEx.Message
-                    });
-                }
-
-                return Ok(new { fileName = file.FileName });
-=======
                 var savedName = await _credentialPersistence.SaveAsync(
                     vet.Id,
                     bytes,
@@ -707,7 +625,6 @@ namespace petLifeApp.Controllers
                     file.ContentType);
 
                 return Ok(new { fileName = savedName });
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             }
             catch (Exception ex)
             {
@@ -715,35 +632,16 @@ namespace petLifeApp.Controllers
             }
         }
 
-<<<<<<< HEAD
-        private static VeterinarianDto MapVet(VeterinarianProfileRecord vet, User? user)
-        {
-            var fee = 150m;
-=======
         private static VeterinarianDto MapVet(
             VeterinarianProfileRecord vet,
             User? user,
             decimal rating = 0m,
             int reviewCount = 0)
         {
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             return new VeterinarianDto(
                 vet.Id,
                 vet.UserId,
                 user?.UserName ?? "Veterinarian",
-<<<<<<< HEAD
-                null,
-                vet.Specialization ?? "General Practice",
-                vet.ClinicName ?? "Clinic",
-                "Not set",
-                user?.Phone ?? "",
-                4.8m,
-                0,
-                vet.IsVerified ?? false,
-                fee,
-                null,
-                vet.IsOnline ?? false
-=======
                 vet.AvatarUrl,
                 vet.Specialization ?? "General Practice",
                 vet.ClinicName ?? "Clinic",
@@ -756,7 +654,6 @@ namespace petLifeApp.Controllers
                 vet.ClinicLocationUrl,
                 vet.IsOnline ?? false,
                 vet.AvailableHours
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             );
         }
 
@@ -766,30 +663,15 @@ namespace petLifeApp.Controllers
                 vet.Id,
                 vet.UserId,
                 user?.UserName ?? "Veterinarian",
-<<<<<<< HEAD
-                null,
-                user?.Phone ?? "",
-                vet.Specialization,
-                vet.ClinicName,
-                null,
-=======
                 vet.AvatarUrl,
                 user?.Phone ?? "",
                 vet.Specialization,
                 vet.ClinicName,
                 vet.ClinicAddress,
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
                 vet.LicenseNumber,
                 vet.University,
                 vet.YearsOfExperience,
                 vet.Bio,
-<<<<<<< HEAD
-                150,
-                vet.IsVerified ?? false,
-                vet.CredentialsFileName,
-                vet.CredentialsContentType,
-                vet.IsOnline ?? false
-=======
                 vet.ConsultationFee ?? 0m,
                 vet.IsVerified ?? false,
                 vet.CredentialsFileName,
@@ -797,7 +679,6 @@ namespace petLifeApp.Controllers
                 vet.IsOnline ?? false,
                 vet.AvailableHours,
                 vet.ClinicLocationUrl
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
             );
         }
     }
@@ -816,12 +697,8 @@ namespace petLifeApp.Controllers
         bool IsVerified,
         decimal ConsultationFee,
         string? ClinicLocationUrl,
-<<<<<<< HEAD
-        bool IsOnline
-=======
         bool IsOnline,
         string? AvailableHours
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     );
 
     public record VetProfileDto(
@@ -841,11 +718,6 @@ namespace petLifeApp.Controllers
         bool IsVerified,
         string? CredentialsFileName,
         string? CredentialsContentType,
-<<<<<<< HEAD
-        bool IsOnline
-    );
-
-=======
         bool IsOnline,
         string? AvailableHours,
         string? ClinicLocationUrl
@@ -862,7 +734,6 @@ namespace petLifeApp.Controllers
 
     public record AddVetReviewRequest(int Rating, string? Comment);
 
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     public record UpdateVetProfileRequest(
         string? LicenseNumber,
         string? Specialization,
@@ -874,12 +745,8 @@ namespace petLifeApp.Controllers
         string? Bio,
         decimal? ConsultationFee,
         string? AvatarUrl,
-<<<<<<< HEAD
-        string? Phone
-=======
         string? Phone,
         string? AvailableHours
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     );
 
     public class UploadCredentialsRequest

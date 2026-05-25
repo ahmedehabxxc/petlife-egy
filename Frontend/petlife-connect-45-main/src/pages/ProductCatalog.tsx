@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-<<<<<<< HEAD
-import ProductCard from "@/components/ProductCard";
-=======
 import ProductCard from "@/Features/ShopOwner/Components/ProductCard";
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";

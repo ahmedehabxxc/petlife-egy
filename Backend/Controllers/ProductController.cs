@@ -153,8 +153,6 @@ namespace petLifeApp.Controllers
             }
         }
 
-<<<<<<< HEAD
-=======
         [HttpGet("catalog/{id:guid}")]
         public async Task<IActionResult> GetCatalogItem(Guid id)
         {
@@ -199,7 +197,6 @@ namespace petLifeApp.Controllers
             }
         }
 
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
         public record CatalogProductDto(
             Guid Id,
             Guid? ShopOwnerId,

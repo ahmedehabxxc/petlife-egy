@@ -22,14 +22,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       },
-<<<<<<< HEAD
-=======
       "/uploads": {
         target: "http://localhost:5270",
         changeOrigin: true,
         secure: false,
       },
->>>>>>> 566e763e4723dcdbb86bc931af1d7ad2ab712daf
     },
     hmr: {
       overlay: false,
