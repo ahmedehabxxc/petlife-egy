@@ -5,6 +5,12 @@ This repo contains:
 - **Backend**: ASP.NET Core Web API (`petLifeApp-master`)
 - **Frontend**: Vite + React (`Frontend/petlife-connect-45-main`)
 
+## Important: avoid losing code in Visual Studio
+
+GitHub `main` must stay on the **restore** commit (`7bed4dd` or later). Do **not** pull or reset to the old `97ea97f` (`bugs remove`) commit — that version deleted features.
+
+In Visual Studio: use **Git > Fetch** before **Pull**, and prefer **View > Git Changes** to review updates. If prompted to sync, confirm you are not reverting to `bugs remove`.
+
 ## Run in development (recommended)
 
 ### 1) Start the backend API
